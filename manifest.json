@@ -1,0 +1,24 @@
+{
+  "name": "Inner Compass",
+  "short_name": "Compass",
+  "description": "Daily self-reflection, empathy, and relationship practices",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F5F2EE",
+  "theme_color": "#3D5A80",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

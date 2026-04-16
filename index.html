@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Inner Compass</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3D5A80">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Inner Compass">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #F5F2EE;
+      --surface:  #FFFFFF;
+      --surface2: #EDE9E3;
+      --primary:  #3D5A80;
+      --plight:   #E3EAF3;
+      --accent:   #E07A5F;
+      --success:  #5C8A6F;
+      --amber:    #D4A017;
+      --text:     #2C2C2C;
+      --muted:    #7A7A7A;
+      --border:   #E0DBD4;
+      --r:        14px;
+      --rsm:      8px;
+      --shadow:   0 2px 10px rgba(0,0,0,0.07);
+      --nav:      56px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    .app { max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .app-header {
+      padding: 16px 20px 10px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .hdr-greeting { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .03em; }
+    .hdr-date     { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.2; }
+    .streak-pill  {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 999px; padding: 6px 11px;
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      box-shadow: var(--shadow);
+    }
+
+    /* ── Main scroll ── */
+    .main-content {
+      flex: 1; overflow-y: auto; padding: 4px 16px;
+      padding-bottom: calc(var(--nav) + env(safe-area-inset-bottom) + 20px);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Tabs ── */
+    .tab-view          { display: none; }
+    .tab-view.active   { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border-radius: var(--r);
+      padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    }
+    .section-heading {
+      font-size: 11px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted); margin: 18px 0 8px;
+    }
+    .section-heading:first-child { margin-top: 8px; }
+
+    /* ── Nudge card ── */
+    .nudge-card {
+      background: var(--primary); color: #fff; border-radius: var(--r);
+      padding: 16px 18px; margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(61,90,128,.25);
+    }
+    .nudge-period { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .65; margin-bottom: 5px; }
+    .nudge-text   { font-size: 15px; font-weight: 600; line-height: 1.45; }
+    .nudge-sub    { font-size: 12px; opacity: .72; margin-top: 5px; }
+
+    /* ── Mood check-in ── */
+    .mood-row { display: flex; gap: 6px; }
+    .mood-btn {
+      flex: 1; font-size: 22px; text-align: center; padding: 8px 4px;
+      border-radius: var(--rsm); border: 2px solid transparent;
+      background: var(--surface2); cursor: pointer;
+      transition: transform .1s, background .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mood-btn:active  { transform: scale(.9); }
+    .mood-btn.selected { background: var(--plight); border-color: var(--primary); }
+
+    /* ── 7-day dot grid ── */
+    .dotgrid {
+      display: flex; gap: 4px; justify-content: space-between;
+      margin-top: 10px;
+    }
+    .dotgrid-day { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
+    .dotgrid-label { font-size: 10px; font-weight: 600; color: var(--muted); }
+    .dotgrid-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--surface2);
+    }
+    .dotgrid-dot.full    { background: var(--success); }
+    .dotgrid-dot.partial { background: var(--amber); }
+    .dotgrid-dot.today-empty { background: transparent; border: 2px solid var(--primary); }
+
+    /* ── Practice card ── */
+    .practice-summary {
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .practice-icon   { font-size: 28px; }
+    .practice-info   { flex: 1; }
+    .practice-name   { font-size: 15px; font-weight: 700; }
+    .practice-meta   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .practice-chevron { font-size: 16px; color: var(--muted); transition: transform .2s; }
+    .practice-chevron.open { transform: rotate(90deg); }
+    .practice-detail { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .practice-detail.open { display: block; }
+    .practice-desc   { font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+
+    /* ── Type badge ── */
+    .type-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      border-radius: 999px; padding: 3px 10px;
+      font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .type-physical   { color: #C0442A; background: #FAE8E4; }
+    .type-mindful    { color: #3D5A80; background: #E3EAF3; }
+    .type-empathy    { color: #9A6B1A; background: #F5EDD8; }
+    .type-discipline { color: #3E7055; background: #DFF0E7; }
+    .type-self-awareness { color: #3D5A80; background: #E3EAF3; }
+    .type-relationships  { color: #8B2A5E; background: #F5E3EF; }
+    .type-integrity      { color: #3E7055; background: #DFF0E7; }
+
+    /* ── Habit items ── */
+    .habit-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: opacity .15s;
+    }
+    .habit-item:last-child { border-bottom: none; }
+    .habit-item:active { opacity: .7; }
+    .habit-emoji  { font-size: 20px; width: 28px; text-align: center; }
+    .habit-info   { flex: 1; }
+    .habit-name   { font-size: 15px; font-weight: 600; }
+    .habit-sub    { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .habit-cb {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; transition: all .2s; flex-shrink: 0;
+    }
+    .habit-item.done .habit-cb     { background: var(--success); border-color: var(--success); color: #fff; }
+    .habit-item.done .habit-name   { text-decoration: line-through; opacity: .6; }
+
+    /* ── Gratitude field ── */
+    .grat-prompt { font-size: 14px; color: var(--muted); margin-bottom: 8px; font-style: italic; }
+
+    /* ── Text areas ── */
+    .journal-area {
+      width: 100%; border: 1.5px solid var(--border); border-radius: var(--rsm);
+      padding: 12px; font-size: 15px; font-family: inherit; resize: none;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      min-height: 78px; transition: border-color .2s; -webkit-appearance: none;
+    }
+    .journal-area:focus { outline: none; border-color: var(--primary); }
+    .char-bar {
+      display: flex; justify-content: flex-end;
+      font-size: 11px; color: var(--muted); margin-top: 3px;
+    }
+    .char-bar.over { color: var(--accent); }
+
+    /* ── Reflect tab ── */
+    .cat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .reflect-prompt { font-size: 17px; font-weight: 700; line-height: 1.4; margin-bottom: 14px; }
+    .saved-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #DFF0E7; color: var(--success); border-radius: 999px;
+      padding: 5px 12px; font-size: 12px; font-weight: 700; margin-bottom: 12px;
+    }
+    .prompt-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+    /* ── Empathy tab ── */
+    .scenario-type-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .scenario-title   { font-size: 19px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; }
+    .scenario-context {
+      background: var(--surface2); border-radius: var(--rsm); padding: 14px;
+      font-size: 14px; line-height: 1.65; margin-bottom: 16px; color: var(--text);
+    }
+    .scenario-q { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+
+    /* ── Partner tab ── */
+    .p-habit-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .p-habit-item:last-child { border-bottom: none; }
+    .p-habit-item:active { opacity: .7; }
+    .p-habit-item.done .p-habit-name { text-decoration: line-through; opacity: .6; }
+    .p-habit-item.done .p-habit-cb   { background: var(--success); border-color: var(--success); color: #fff; }
+    .p-habit-name { font-size: 15px; font-weight: 600; flex: 1; }
+    .p-habit-cb   {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2.5px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 13px; transition: all .2s; flex-shrink: 0;
+    }
+    .assessment-row { display: flex; gap: 6px; margin-top: 6px; }
+    .assess-btn {
+      flex: 1; font-size: 22px; text-align: center; padding: 8px 4px;
+      border-radius: var(--rsm); border: 2px solid transparent;
+      background: var(--surface2); cursor: pointer;
+      transition: transform .1s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .assess-btn:active   { transform: scale(.9); }
+    .assess-btn.selected { background: var(--plight); border-color: var(--primary); }
+
+    /* ── Journal tab ── */
+    .stats-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .stat-pill {
+      flex: 1; background: var(--surface); border-radius: var(--r);
+      padding: 14px 12px; text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-num   { font-size: 24px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    .stat-pill.accent .stat-num { color: var(--accent); }
+
+    .week-grid { display: flex; gap: 4px; margin-bottom: 12px; }
+    .week-col  { flex: 1; text-align: center; }
+    .week-day  { font-size: 10px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .week-dot  {
+      width: 28px; height: 28px; border-radius: 50%; margin: 0 auto;
+      background: var(--surface2);
+    }
+    .week-dot.full    { background: var(--success); }
+    .week-dot.partial { background: var(--amber); }
+    .week-dot.today-e { background: transparent; border: 2.5px solid var(--primary); }
+    .week-stat { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    .qtr-row  { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .qtr-row:last-child { border-bottom: none; }
+    .qtr-key  { font-size: 14px; color: var(--text); }
+    .qtr-val  { font-size: 14px; font-weight: 700; color: var(--primary); }
+
+    .archive-item {
+      padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .archive-item:last-child { border-bottom: none; }
+    .archive-date    { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .archive-preview { font-size: 14px; color: var(--text); line-height: 1.4; }
+    .archive-meta    { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .archive-full    { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .archive-full.open { display: block; }
+    .archive-section { margin-bottom: 10px; }
+    .archive-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+    .archive-section-text  { font-size: 14px; color: var(--text); line-height: 1.5; }
+
+    /* ── Settings ── */
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 0; border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 15px; font-weight: 600; }
+    .settings-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--surface2);
+      border-radius: 999px; transition: background .2s; cursor: pointer;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 22px; height: 22px;
+      border-radius: 50%; background: #fff; left: 3px; top: 3px;
+      transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--success); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: block; width: 100%; padding: 14px; border-radius: var(--r);
+      border: none; font-size: 16px; font-weight: 700; cursor: pointer;
+      text-align: center; transition: transform .1s, opacity .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active   { transform: scale(.97); }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-success  { background: var(--success); color: #fff; }
+    .btn-outline  { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-sm       { padding: 9px 16px; width: auto; display: inline-block; font-size: 14px; }
+
+    /* ── Install banner ── */
+    .install-banner {
+      background: #F5EDD8; border: 1.5px solid #E8C97A;
+      border-radius: var(--r); padding: 12px 14px;
+      margin: 0 16px 10px; font-size: 13px; color: #9A6B1A;
+      line-height: 1.5; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .install-banner .ix { font-size: 18px; flex-shrink: 0; }
+    .install-banner button { background: none; border: none; font-size: 18px; cursor: pointer; color: #9A6B1A; margin-left: auto; }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      height: calc(var(--nav) + env(safe-area-inset-bottom));
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 2px; background: none; border: none;
+      cursor: pointer; color: var(--muted); font-size: 9px; font-weight: 600;
+      letter-spacing: .01em; transition: color .15s;
+      -webkit-tap-highlight-color: transparent; padding: 6px 0;
+    }
+    .nav-btn .ni { font-size: 20px; transition: transform .15s; }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn.active .ni { transform: scale(1.12); }
+
+    /* ── Steps ── */
+    .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 9px; }
+    .step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--surface2); color: var(--text); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-t { font-size: 13px; line-height: 1.5; }
+
+    .benefit-box { background: var(--plight); border-radius: var(--rsm); padding: 11px 13px; margin-top: 12px; font-size: 13px; color: var(--primary); line-height: 1.5; }
+    .benefit-box strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+
+    /* ── Boundaries checklist ── */
+    .boundary-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .boundary-item:last-child { border-bottom: none; }
+    .boundary-item:active { opacity: .7; }
+    .boundary-cb {
+      width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; margin-top: 2px;
+      border: 2px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 12px; font-weight: 700;
+      transition: all .2s; color: transparent;
+    }
+    .boundary-item.done .boundary-cb {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+    }
+    .boundary-item.done .boundary-title { opacity: .5; text-decoration: line-through; }
+    .boundary-title { font-size: 14px; font-weight: 600; line-height: 1.35; }
+    .boundary-hint  { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .boundary-progress {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .boundary-progress .bp-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .boundary-progress .bp-count { font-size: 20px; font-weight: 800; color: var(--primary); }
+    .bp-bar { height: 4px; background: var(--surface2); border-radius: 999px; margin-bottom: 14px; overflow: hidden; }
+    .bp-bar-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width .4s ease; }
+
+    /* ── Notification setup card ── */
+    .notif-setup {
+      background: linear-gradient(135deg, #3D5A80, #2C4468);
+      color: #fff; border-radius: var(--r); padding: 16px 18px;
+      margin-bottom: 14px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .notif-setup .ns-icon { font-size: 26px; flex-shrink: 0; margin-top: 2px; }
+    .notif-setup .ns-body { flex: 1; }
+    .notif-setup .ns-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .notif-setup .ns-sub   { font-size: 12px; opacity: .8; margin-bottom: 10px; line-height: 1.4; }
+    .notif-setup .ns-btn {
+      background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.4);
+      color: #fff; border-radius: 999px; padding: 7px 16px; font-size: 13px;
+      font-weight: 700; cursor: pointer; display: inline-block;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .notif-setup .ns-dismiss {
+      background: none; border: none; color: rgba(255,255,255,.6);
+      font-size: 18px; cursor: pointer; padding: 0; flex-shrink: 0;
+    }
+    .notif-time-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .notif-time-row:last-child { border-bottom: none; }
+    .ntl { font-size: 14px; font-weight: 600; }
+    .nts { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .notif-tip {
+      background: var(--surface2); border-radius: var(--rsm); padding: 12px 14px;
+      font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 12px;
+    }
+    .notif-tip strong { color: var(--text); }
+
+    /* ── Dark mode ── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #18181C; --surface: #24242A; --surface2: #2C2C34;
+        --text: #F0EDE8; --muted: #9A9A9A; --border: #38383F;
+        --plight: #1A2535;
+      }
+      .nudge-card { box-shadow: none; }
+      .dotgrid-dot { background: var(--surface2); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <div>
+      <div class="hdr-greeting" id="greeting">Good morning</div>
+      <div class="hdr-date" id="dateDisplay">Tuesday</div>
+    </div>
+    <div class="streak-pill">🔥 <span id="streakCount">—</span></div>
+  </header>
+
+  <div class="install-banner" id="installBanner" style="display:none">
+    <span class="ix">📲</span>
+    <span><strong>Add to Home Screen</strong> for the best experience. Tap Share → "Add to Home Screen".</span>
+    <button onclick="dismissInstall()">×</button>
+  </div>
+
+  <main class="main-content">
+
+    <!-- ══ TODAY ══ -->
+    <section class="tab-view active" id="tab-today">
+      <!-- Notification setup prompt (shown until dismissed or set up) -->
+      <div class="notif-setup" id="notifSetup" style="display:none">
+        <span class="ns-icon">🔔</span>
+        <div class="ns-body">
+          <div class="ns-title">Stay on track with daily nudges</div>
+          <div class="ns-sub">Get gentle reminders at 8 AM, 1 PM, and 8 PM — even when the app is closed.</div>
+          <button class="ns-btn" onclick="setupAllNotifs()">Enable notifications</button>
+        </div>
+        <button class="ns-dismiss" onclick="dismissNotifSetup()">×</button>
+      </div>
+
+      <div class="nudge-card" id="nudgeCard"></div>
+
+      <!-- Mood -->
+      <div class="card">
+        <div class="card-title">How are you today?</div>
+        <div class="mood-row" id="moodRow">
+          <button class="mood-btn" data-mood="1" onclick="setMood(1)">😔</button>
+          <button class="mood-btn" data-mood="2" onclick="setMood(2)">😐</button>
+          <button class="mood-btn" data-mood="3" onclick="setMood(3)">🙂</button>
+          <button class="mood-btn" data-mood="4" onclick="setMood(4)">😊</button>
+          <button class="mood-btn" data-mood="5" onclick="setMood(5)">🌟</button>
+        </div>
+      </div>
+
+      <!-- 7-day grid -->
+      <div class="card">
+        <div class="card-title">Last 7 Days</div>
+        <div class="dotgrid" id="dotGrid"></div>
+      </div>
+
+      <!-- Today's Practice -->
+      <div class="card" id="practiceCard"></div>
+
+      <!-- Gratitude -->
+      <div class="card">
+        <div class="card-title">One Good Thing</div>
+        <div class="grat-prompt">What's one thing you're genuinely grateful for right now?</div>
+        <textarea class="journal-area" id="gratArea" maxlength="120" placeholder="Be specific, not generic..."></textarea>
+        <div class="char-bar" id="gratCC">0/120</div>
+      </div>
+
+      <!-- Habits -->
+      <div class="card">
+        <div class="card-title">Today's Habits</div>
+        <div class="habit-item" id="habit-walk"     onclick="toggleHabit('walk')">
+          <span class="habit-emoji">🚶</span>
+          <div class="habit-info"><div class="habit-name">Morning Walk</div><div class="habit-sub">Phone-free, outside</div></div>
+          <div class="habit-cb" id="hc-walk"></div>
+        </div>
+        <div class="habit-item" id="habit-exercise" onclick="toggleHabit('exercise')">
+          <span class="habit-emoji">⚡</span>
+          <div class="habit-info"><div class="habit-name">Exercise</div><div class="habit-sub">Today's practice</div></div>
+          <div class="habit-cb" id="hc-exercise"></div>
+        </div>
+        <div class="habit-item" id="habit-reflected" onclick="toggleHabit('reflected')">
+          <span class="habit-emoji">💭</span>
+          <div class="habit-info"><div class="habit-name">Reflected</div><div class="habit-sub">Wrote today's reflection</div></div>
+          <div class="habit-cb" id="hc-reflected"></div>
+        </div>
+        <div class="habit-item" id="habit-partner"  onclick="toggleHabit('partner')">
+          <span class="habit-emoji">💛</span>
+          <div class="habit-info"><div class="habit-name">Partner Moment</div><div class="habit-sub">Intentional care</div></div>
+          <div class="habit-cb" id="hc-partner"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ REFLECT ══ -->
+    <section class="tab-view" id="tab-reflect">
+      <div class="section-heading">Today's Reflection</div>
+      <div class="card" id="reflectCard"></div>
+    </section>
+
+    <!-- ══ EMPATHY ══ -->
+    <section class="tab-view" id="tab-empathy">
+      <div class="section-heading">Empathy Exercise</div>
+      <div class="card" id="empathyCard"></div>
+    </section>
+
+    <!-- ══ PARTNER ══ -->
+    <section class="tab-view" id="tab-partner">
+      <div class="section-heading">Today's Commitments</div>
+      <div class="card" id="boundariesCard"></div>
+
+      <div class="section-heading">Partner Habits</div>
+      <div class="card">
+        <div class="p-habit-item" id="ph-attention" onclick="togglePHabit('attention')">
+          <span style="font-size:20px;width:28px;text-align:center">🎯</span>
+          <div class="p-habit-name">Undivided attention</div>
+          <div class="p-habit-cb" id="phc-attention"></div>
+        </div>
+        <div class="p-habit-item" id="ph-checkin" onclick="togglePHabit('checkin')">
+          <span style="font-size:20px;width:28px;text-align:center">❓</span>
+          <div class="p-habit-name">Asked how they really are</div>
+          <div class="p-habit-cb" id="phc-checkin"></div>
+        </div>
+        <div class="p-habit-item" id="ph-appreciation" onclick="togglePHabit('appreciation')">
+          <span style="font-size:20px;width:28px;text-align:center">💬</span>
+          <div class="p-habit-name">Expressed appreciation</div>
+          <div class="p-habit-cb" id="phc-appreciation"></div>
+        </div>
+        <div class="p-habit-item" id="ph-affection" onclick="togglePHabit('affection')">
+          <span style="font-size:20px;width:28px;text-align:center">🤗</span>
+          <div class="p-habit-name">Physical affection</div>
+          <div class="p-habit-cb" id="phc-affection"></div>
+        </div>
+      </div>
+
+      <div class="section-heading">Reflection</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:8px">Something I appreciate about my partner today</div>
+        <div class="grat-prompt">Be specific — what did they do, say, or carry?</div>
+        <textarea class="journal-area" id="pApprecArea" maxlength="150" placeholder="One specific, true thing..."></textarea>
+        <div class="char-bar" id="pApprecCC">0/150</div>
+
+        <div style="height:16px"></div>
+
+        <div class="card-title" style="margin-bottom:6px">How did I show up as a partner today?</div>
+        <div class="assessment-row" id="assessRow">
+          <button class="assess-btn" data-val="1" onclick="setAssessment(1)">😔</button>
+          <button class="assess-btn" data-val="2" onclick="setAssessment(2)">😐</button>
+          <button class="assess-btn" data-val="3" onclick="setAssessment(3)">🙂</button>
+          <button class="assess-btn" data-val="4" onclick="setAssessment(4)">😊</button>
+          <button class="assess-btn" data-val="5" onclick="setAssessment(5)">🌟</button>
+        </div>
+
+        <div style="height:16px"></div>
+
+        <div class="card-title" style="margin-bottom:6px">My intention for tomorrow</div>
+        <textarea class="journal-area" id="pIntentArea" maxlength="120" placeholder="One thing I'll do for them..."></textarea>
+        <div class="char-bar" id="pIntentCC">0/120</div>
+      </div>
+    </section>
+
+    <!-- ══ JOURNAL ══ -->
+    <section class="tab-view" id="tab-journal">
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="section-heading">This Week</div>
+      <div class="card" id="weekCard"></div>
+
+      <div class="section-heading">Last 90 Days</div>
+      <div class="card" id="qtrCard"></div>
+
+      <div class="section-heading">Reflection Archive</div>
+      <div class="card" id="archiveCard"></div>
+    </section>
+
+    <!-- ══ SETTINGS ══ -->
+    <section class="tab-view" id="tab-settings">
+      <div class="section-heading">Notifications</div>
+      <div class="card" id="notifSettingsCard"></div>
+
+      <div class="section-heading">Your Data</div>
+      <div class="card">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Export to file</div>
+            <div class="settings-sub">Save all entries as JSON — keep it in iCloud Drive</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="exportData()">Export</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Import from file</div>
+            <div class="settings-sub">Restore from a previous export</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">Import</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        </div>
+        <div class="settings-row" style="border-bottom:none;">
+          <div id="dataStats" style="font-size:13px;color:var(--muted);line-height:1.6;"></div>
+        </div>
+      </div>
+
+      <div class="section-heading">App</div>
+      <div class="card">
+        <div class="settings-row">
+          <div><div class="settings-label">Inner Compass</div><div class="settings-sub">v1.2 · Data stored on your device</div></div>
+        </div>
+        <div class="settings-row" style="border-bottom:none;">
+          <div><div class="settings-label" style="color:var(--accent)">Reset all data</div><div class="settings-sub">Cannot be undone</div></div>
+          <button class="btn btn-outline btn-sm" onclick="confirmReset()">Reset</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="today"   onclick="showTab('today')">
+      <span class="ni">🏠</span><span>Today</span></button>
+    <button class="nav-btn" data-tab="reflect"  onclick="showTab('reflect')">
+      <span class="ni">💭</span><span>Reflect</span></button>
+    <button class="nav-btn" data-tab="empathy"  onclick="showTab('empathy')">
+      <span class="ni">🤝</span><span>Empathy</span></button>
+    <button class="nav-btn" data-tab="partner"  onclick="showTab('partner')">
+      <span class="ni">💛</span><span>Partner</span></button>
+    <button class="nav-btn" data-tab="journal"  onclick="showTab('journal')">
+      <span class="ni">📚</span><span>Journal</span></button>
+    <button class="nav-btn" data-tab="settings" onclick="showTab('settings')">
+      <span class="ni">⚙️</span><span>Settings</span></button>
+  </nav>
+</div>
+<script>
+// ════════════════════════════════
+//  CONTENT DATA
+// ════════════════════════════════
+
+// 48 Reflect prompts, interleaved by category (SA, E, R, I)
+const REFLECT_PROMPTS = [
+  {cat:'self-awareness', text:'When today did I react instead of respond?'},
+  {cat:'empathy', text:'Did I listen to understand, or mostly to prepare my response?'},
+  {cat:'relationships', text:'How did I show up in my most important relationship today — really?'},
+  {cat:'integrity', text:'Did my actions today match my stated values? Where did they diverge?'},
+  {cat:'self-awareness', text:'What emotion did I avoid feeling today, and what did that cost me?'},
+  {cat:'empathy', text:'Who around me might be carrying something I haven\'t acknowledged?'},
+  {cat:'relationships', text:'Did I bring my stress home today? How did it land?'},
+  {cat:'integrity', text:'What promise did I make — to myself or others — that I avoided today?'},
+  {cat:'self-awareness', text:'What story am I telling myself that might not be true?'},
+  {cat:'empathy', text:'When I was most frustrated today — what was the other person going through?'},
+  {cat:'relationships', text:'Was I present or distracted in my time with my partner today?'},
+  {cat:'integrity', text:'Where did I take the easier path when I knew the right one was harder?'},
+  {cat:'self-awareness', text:'What did I do today out of fear or habit, rather than intention?'},
+  {cat:'empathy', text:'Where did I make an assumption about someone\'s intentions I couldn\'t prove?'},
+  {cat:'relationships', text:'One thing I appreciate about my partner that I haven\'t expressed recently...'},
+  {cat:'integrity', text:'Was I fully honest today — including the small, convenient dishonesty?'},
+  {cat:'self-awareness', text:'When was I most authentic today? When did I perform?'},
+  {cat:'empathy', text:'Who needed more grace from me today, and what stopped me from giving it?'},
+  {cat:'relationships', text:'How could I make my partner feel more seen and loved this week?'},
+  {cat:'integrity', text:'Where did I act to manage others\' perceptions rather than from genuine conviction?'},
+  {cat:'self-awareness', text:'What does my behaviour today say about what I actually value?'},
+  {cat:'empathy', text:'In what moment today did I see the world only through my own lens?'},
+  {cat:'relationships', text:'What would my partner say about what kind of partner I\'ve been lately?'},
+  {cat:'integrity', text:'What would I do differently if I knew no one would ever find out?'},
+  {cat:'self-awareness', text:'What am I most afraid to look at honestly right now?'},
+  {cat:'empathy', text:'What would change if I truly believed most people are doing their best?'},
+  {cat:'relationships', text:'In what small ways am I taking my partner for granted?'},
+  {cat:'integrity', text:'Where am I compromising on something I said mattered to me?'},
+  {cat:'self-awareness', text:'What habit is quietly making me someone I don\'t want to be?'},
+  {cat:'empathy', text:'When did I dismiss someone\'s perspective because it was inconvenient for me?'},
+  {cat:'relationships', text:'What am I too proud or stubborn to apologise for?'},
+  {cat:'integrity', text:'Who did I fail today by not saying what needed to be said?'},
+  {cat:'self-awareness', text:'Where did I let ego win over wisdom today?'},
+  {cat:'empathy', text:'Who in my life is struggling in a way I\'ve been too busy to notice?'},
+  {cat:'relationships', text:'What has my partner been going through that I haven\'t fully acknowledged?'},
+  {cat:'integrity', text:'Am I being the person I\'d be proud of a child emulating?'},
+  {cat:'self-awareness', text:'What did I learn about myself today that I didn\'t know this morning?'},
+  {cat:'empathy', text:'What would the person I was hardest on today say about the interaction?'},
+  {cat:'relationships', text:'Am I the partner I promised to be? What\'s the gap?'},
+  {cat:'integrity', text:'What decision am I postponing because the honest answer is uncomfortable?'},
+  {cat:'self-awareness', text:'In what ways was I unkind today — to others or to myself?'},
+  {cat:'empathy', text:'When did I put my need to be right above someone\'s need to feel heard?'},
+  {cat:'relationships', text:'What did my most important relationship need from me today?'},
+  {cat:'integrity', text:'What would it mean to live this week with uncompromising integrity?'},
+  {cat:'self-awareness', text:'Where in my life am I settling for less than I believe in?'},
+  {cat:'empathy', text:'What\'s one thing I said today I\'d say differently if I could?'},
+  {cat:'relationships', text:'One moment where I could have been more patient with the people I love...'},
+  {cat:'integrity', text:'Where am I being the person I want to be — and where am I falling short?'},
+];
+
+const CAT_META = {
+  'self-awareness': {label:'Self-Awareness', cls:'type-self-awareness'},
+  'empathy':        {label:'Empathy',        cls:'type-empathy'},
+  'relationships':  {label:'Relationships',  cls:'type-relationships'},
+  'integrity':      {label:'Integrity',      cls:'type-integrity'},
+};
+
+const EMPATHY_SCENARIOS = [
+  { type:'colleague', typeLabel:'Colleague',
+    title:'The Uncredited Idea',
+    context:'Your colleague presents an idea in a meeting — one you shared with them privately last week. The room responds positively and they receive the credit. You feel angry and unseen.',
+    q1:'Step into their shoes. What might they have been feeling, thinking, or carrying that led to this moment?',
+    q2:'After sitting in their perspective: what shifted for you, if anything?' },
+  { type:'colleague', typeLabel:'Colleague',
+    title:'The Rising Star',
+    context:'A colleague has been getting noticeably more recognition lately. You\'ve noticed a growing resentment in yourself — one you don\'t fully understand or like.',
+    q1:'What might this person\'s journey look like from inside their experience? What are they carrying that you can\'t see?',
+    q2:'What does your resentment tell you about your own unmet needs or fears?' },
+  { type:'partner', typeLabel:'Partner',
+    title:'The Closed Door',
+    context:'You came home stressed and short-tempered. Your partner tried to connect — a question, a touch, a gentle joke — and you withdrew or snapped. Now they seem quiet and distant.',
+    q1:'Write what your partner experienced from their side. What did they feel when they reached out, and when you pulled away?',
+    q2:'What do you notice when you sit with what they experienced?' },
+  { type:'partner', typeLabel:'Partner',
+    title:'The Same Complaint',
+    context:'Your partner expressed frustration about something you regularly do — a habit, a pattern. In the moment, you felt defensive and dismissed their feedback.',
+    q1:'Write the situation entirely from your partner\'s perspective. What do they feel, need, and fear around this issue?',
+    q2:'Is there something true in what they\'ve been saying that you\'ve been reluctant to hear?' },
+  { type:'stranger', typeLabel:'Stranger',
+    title:'The Line Cutter',
+    context:'Someone cuts in front of you in a queue — coffee shop, checkout, anywhere. They don\'t apologise, don\'t make eye contact, and seem completely indifferent.',
+    q1:'What could this person\'s life look like today? What might they be dealing with that has nothing to do with you?',
+    q2:'What did you feel in that moment, and what does that reaction tell you about yourself?' },
+  { type:'stranger', typeLabel:'Stranger',
+    title:'The Aggressive Driver',
+    context:'A car cuts you off dangerously on the road. You honk. They ignore you. You find yourself carrying irritation long after the moment has passed.',
+    q1:'Imagine the day, week, or year this person might be having. What story could explain that moment without making them a villain?',
+    q2:'What did it cost you to carry that irritation? Was it worth it?' },
+  { type:'loved-one', typeLabel:'Loved One',
+    title:'The Third Time',
+    context:'A close friend makes the same mistake for the third time — the kind you\'ve warned them about, the kind that\'s beginning to affect your ability to trust them.',
+    q1:'From inside their experience: what might be driving this pattern? What are they unable to see, or unwilling to face?',
+    q2:'What would compassion — not enabling, but genuine compassion — look like from you right now?' },
+  { type:'loved-one', typeLabel:'Loved One',
+    title:'The Unilateral Decision',
+    context:'Someone close to you made a significant decision without consulting you. When you raised it, they became defensive and the conversation escalated.',
+    q1:'Write what was going on for them: what need, fear, or belief drove them to act unilaterally? What were they hoping for?',
+    q2:'Beyond the defensiveness, what do you think they actually needed from you in that conversation?' },
+];
+
+const TYPE_META = {
+  colleague:   {cls:'type-empathy',   label:'Colleague'},
+  partner:     {cls:'type-relationships', label:'Partner'},
+  stranger:    {cls:'type-self-awareness', label:'Stranger'},
+  'loved-one': {cls:'type-integrity', label:'Loved One'},
+};
+
+const EXERCISES = [
+  {title:'Morning Walk',type:'physical',icon:'🚶',dur:'10 min',
+   desc:'Step outside before looking at your phone. Walk at a comfortable pace and notice your surroundings.',
+   steps:['Leave your phone on silent','Walk for 10 minutes','Notice 5 things you can see','Notice 3 sounds around you','Return feeling grounded'],
+   benefit:'A phone-free walk sets a calm, intentional tone for the entire day.'},
+  {title:'20 Pushups',type:'physical',icon:'💪',dur:'5 min',
+   desc:'Do 20 pushups at your pace. Knee pushups are fine — form over ego.',
+   steps:['Plant hands shoulder-width apart','Lower your chest close to the floor','Push up fully','Rest 30s between sets if needed','Breathe steadily throughout'],
+   benefit:'Doing something hard first thing builds the habit of doing hard things.'},
+  {title:'Full Body Stretch',type:'physical',icon:'🧘',dur:'8 min',
+   desc:'Move slowly through neck, shoulders, chest, hips, hamstrings, calves.',
+   steps:['Neck rolls: 5 each direction','Shoulder cross-body: 20s each','Chest opener: clasp hands behind','Hip flexor lunge: 30s each side','Forward fold: hold 40s'],
+   benefit:'Releasing physical tension also releases mental tension.'},
+  {title:'1-Minute Plank',type:'physical',icon:'🏋️',dur:'3 min',
+   desc:'Hold a plank for 60 seconds. Start at 30s if needed. No compromises once you commit.',
+   steps:['Forearms on floor, elbows under shoulders','Body straight — head to heels','Engage core and breathe','Don\'t let hips sag or rise','Hold the time you committed to'],
+   benefit:'A plank is about staying steady under discomfort.'},
+  {title:'Sun Salutations',type:'physical',icon:'☀️',dur:'10 min',
+   desc:'5 rounds of sun salutations. Move with your breath, not against it.',
+   steps:['Mountain pose — inhale, arms overhead','Fold forward — exhale','Step back to plank','Lower to cobra — inhale','Downward dog — exhale, repeat 5×'],
+   benefit:'Links breath to movement, creating a meditative state.'},
+  {title:'Jumping Jacks + Squats',type:'physical',icon:'🏃',dur:'6 min',
+   desc:'50 jumping jacks, then 25 squats. Two rounds if you\'re feeling it.',
+   steps:['Jacks: arms fully extend overhead','Land softly — bend the knees','Squats: feet shoulder-width, toes out','Sit back, not forward','Chest tall throughout'],
+   benefit:'Gets your heart rate up without equipment.'},
+  {title:'20-Minute Walk',type:'physical',icon:'🌳',dur:'20 min',
+   desc:'A longer walk. Find trees, air, space. Headphones optional.',
+   steps:['Pick a pleasant route','Walk without a destination','Notice your posture','Let thoughts come and go','End with 2 minutes of slow breathing'],
+   benefit:'Long walks are where insight lives.'},
+  {title:'Body Weight Circuit',type:'physical',icon:'🔄',dur:'15 min',
+   desc:'3 rounds: 10 pushups, 15 squats, 20 jumping jacks, 10 lunges (each leg). 60s rest.',
+   steps:['Set a timer','Move with intent','Rest fully between rounds','Modify if needed','Finish each round'],
+   benefit:'Consistent short circuits build more than fitness — they build follow-through.'},
+  {title:'Dance Break',type:'physical',icon:'🕺',dur:'8 min',
+   desc:'Put on 2-3 songs you love and move however you want. No performance.',
+   steps:['Pick music that moves you','Close the door if you need to','Move without judgment','Let yourself be ridiculous — it\'s the point','Notice your mood shift'],
+   benefit:'Joy is a discipline. Allowing yourself to play without purpose is harder than it sounds.'},
+  {title:'Box Breathing + Cold Splash',type:'physical',icon:'💧',dur:'5 min',
+   desc:'4 rounds of box breathing (4-4-4-4), then splash cold water on your face 10 times.',
+   steps:['Breathe in — 4 counts','Hold — 4 counts','Breathe out — 4 counts','Hold — 4 counts','4 rounds, then splash cold water'],
+   benefit:'Activates the parasympathetic nervous system. A natural reset.'},
+  {title:'Stair Climbing',type:'physical',icon:'🪜',dur:'10 min',
+   desc:'Find stairs and climb continuously for 10 minutes.',
+   steps:['Set a 10-min timer','Climb at a pace you can sustain','Focus on breathing','Stop if dizzy'],
+   benefit:'One of the most efficient cardio workouts requiring only stairs.'},
+  {title:'Afternoon Movement Break',type:'physical',icon:'🌀',dur:'5 min',
+   desc:'You\'ve been sitting too long. Stand, shake it out, do 10 squats.',
+   steps:['Stand up','Shake hands and arms loose','10 air squats — slow','Shoulder rolls: 10 fwd, 10 back','5 deep breaths before sitting'],
+   benefit:'Breaks sitting cycles that drain energy and dull focus.'},
+  {title:'5-Minute Breath Meditation',type:'mindful',icon:'🧘',dur:'5 min',
+   desc:'Sit comfortably, set a timer, and watch your breath. When mind wanders, return without judgment.',
+   steps:['Sit upright','Close eyes or soften gaze','Follow breath at the nostrils','When thoughts arise, return','Stay for 5 minutes without checking the time'],
+   benefit:'Five minutes of focused attention daily measurably reduces reactivity over weeks.'},
+  {title:'Body Scan',type:'mindful',icon:'🔍',dur:'10 min',
+   desc:'Move attention through every part of your body, head to toe. Notice tension without fixing it.',
+   steps:['Lie down or sit','Begin at the top of your head','Move slowly: face, neck, shoulders, arms','Notice tension — don\'t force it away','Continue to chest, stomach, legs, feet'],
+   benefit:'Locating tension in the body reveals what you\'re carrying emotionally.'},
+  {title:'Mindful Eating',type:'mindful',icon:'🍽️',dur:'varies',
+   desc:'One meal today — no screens, no distractions. Just the food.',
+   steps:['Choose one meal (breakfast is easiest)','Turn off all screens first','Take 3 breaths before the first bite','Chew slowly — put fork down between bites','Notice flavour, texture, temperature'],
+   benefit:'Eating with attention is one of the simplest mindfulness practices and hardest to maintain.'},
+  {title:'Gratitude Writing',type:'mindful',icon:'✍️',dur:'5 min',
+   desc:'Write 3 things you\'re genuinely grateful for. Be specific — today or yesterday only.',
+   steps:['Write exactly 3 things','Each must be specific','From today or yesterday only','Feel each one before moving on','Re-read the list before closing'],
+   benefit:'Specificity in gratitude trains the brain to notice the good it normally filters out.'},
+  {title:'Best-Self Visualization',type:'mindful',icon:'🌟',dur:'5 min',
+   desc:'Close your eyes. Imagine the best version of yourself today — how you speak, move, treat people.',
+   steps:['Sit comfortably, close your eyes','Picture walking through the day as your best self','How does he speak to his partner? Others?','What does he choose vs. avoid?','Hold that image for 2 minutes'],
+   benefit:'Mental rehearsal primes you to recognise and act as the person you want to be.'},
+  {title:'25-Minute Single-Task Block',type:'mindful',icon:'⏱️',dur:'25 min',
+   desc:'One task. Timer set. Only that. No switching, no notifications.',
+   steps:['Choose one task before starting','Phone to Do Not Disturb','Work only on that task for 25 min','If another thought arrives, write it down','Stop at 25 min — honour the boundary'],
+   benefit:'The ability to single-task is becoming rare and more valuable.'},
+  {title:'Loving-Kindness Meditation',type:'mindful',icon:'💛',dur:'10 min',
+   desc:'Send well-wishes to yourself, your partner, someone difficult, then all beings.',
+   steps:['Close your eyes','Yourself: "May I be happy. May I be at ease."','Your partner: same, picture their face','Someone difficult: same phrases','All beings: expand the wish outward'],
+   benefit:'Practising compassion for someone difficult reduces the resentment you carry.'},
+  {title:'5 Minutes of Silence',type:'mindful',icon:'🤫',dur:'5 min',
+   desc:'No phone, music, or podcast. Just you and whatever\'s there.',
+   steps:['Find a quiet spot — outside is best','No inputs for 5 minutes','Let boredom arrive without escaping it','Notice what surfaces when the noise stops','Stay for the full 5 minutes'],
+   benefit:'Most of us never experience silence. What surfaces in it is usually worth hearing.'},
+  {title:'Values Check-In',type:'mindful',icon:'🧭',dur:'5 min',
+   desc:'Name your top 3 values. Then ask: did my behaviour yesterday align with them?',
+   steps:['Name your top 3 values (e.g. honesty, presence, care)','One moment each that expressed a value','One moment each that contradicted it','No self-criticism — just honest observation','Choose one value to be intentional about today'],
+   benefit:'Values are only real when they\'re embodied.'},
+  {title:'Trigger Awareness',type:'mindful',icon:'📡',dur:'all day',
+   desc:'Notice the moment before you react — the fraction of a second between stimulus and response.',
+   steps:['Set the intention at day\'s start','Watch for heat rising in your chest or jaw','Don\'t suppress — just notice the trigger','Ask: what story am I telling right now?','At day\'s end: write one trigger you noticed'],
+   benefit:'Awareness of your triggers is the first step to not being controlled by them.'},
+  {title:'2-Hour Digital Detox',type:'mindful',icon:'📵',dur:'2 hours',
+   desc:'No social media, news, or streaming for 2 consecutive hours.',
+   steps:['Pick a 2-hour window','Put phone in another room','If you reach for it, notice that impulse','Fill the time without screens','Observe how you feel at the end'],
+   benefit:'Most dopamine dysregulation is caused by constant checking.'},
+  {title:'Verbal Appreciation',type:'empathy',icon:'💬',dur:'2 min',
+   desc:'Tell your partner one specific thing you appreciate about them today.',
+   steps:['Think of something specific they did recently','Make it concrete: "When you did X, I felt Y"','Say it directly — not via text','Don\'t qualify or make it a complaint sandwich','Notice how they receive it'],
+   benefit:'Your partner can feel the difference between generic praise and being truly seen.'},
+  {title:'Hidden Chore',type:'empathy',icon:'🧹',dur:'varies',
+   desc:'Do a chore your partner usually handles. Don\'t mention it. Don\'t expect credit.',
+   steps:['Notice one task they typically handle','Do it completely, before they mention it','Tell no one, including them','If they notice, don\'t seek recognition'],
+   benefit:'Unrecognised labour is a major source of resentment. Removing it quietly matters.'},
+  {title:'15 Minutes of Presence',type:'empathy',icon:'🤝',dur:'15 min',
+   desc:'Give your partner 15 minutes of completely undivided attention. Phone in another room.',
+   steps:['Tell them you want to talk — no screens','Phone in a different room (not just face down)','Ask an open question about their world','Listen without thinking about your response','Only talk about yourself if asked'],
+   benefit:'Being truly present is a gift most people in long relationships forget to give.'},
+  {title:'Partner Perspective Writing',type:'empathy',icon:'🔄',dur:'5 min',
+   desc:'Think of a recent tension. Write the whole situation from your partner\'s perspective only.',
+   steps:['Choose a recent disagreement or friction','Write in first person as your partner','Describe what they felt, needed, feared','Do not defend yourself in the writing','Read it back: does this ring true?'],
+   benefit:'This exercise reveals where your empathy has limits.'},
+  {title:'Ask What\'s Needed',type:'empathy',icon:'🙏',dur:'2 min',
+   desc:'Before responding to a problem your partner shares: ask "Do you need me to listen or to help solve?"',
+   steps:['Wait until they share something difficult','Pause before offering advice or solutions','Ask: "Do you want to talk through it, or just be heard?"','Do what they say','Don\'t redirect to your own experience'],
+   benefit:'Most relationship friction comes from giving the wrong kind of support.'},
+  {title:'Tone Check',type:'empathy',icon:'🎙️',dur:'all day',
+   desc:'Notice today whether you speak more gently to strangers than to your partner. If yes — why?',
+   steps:['Set an intention before your first interaction','Notice your tone when tired, stressed, distracted','Ask: would I use this tone with a friend?','Don\'t beat yourself up — just notice','At day\'s end: one moment where you could have been softer'],
+   benefit:'We reserve our harshest tones for those we\'re most comfortable with. That comfort shouldn\'t mean carelessness.'},
+  {title:'Genuine Curiosity',type:'empathy',icon:'🔎',dur:'10 min',
+   desc:'Ask your partner one question today that you genuinely don\'t know the answer to.',
+   steps:['Not: "How was your day?"','Instead: "What\'s something you\'ve been thinking about?"','Or: "Is there anything you\'ve been feeling you haven\'t said?"','Listen to understand — not to respond','Ask one follow-up before talking about yourself'],
+   benefit:'Curiosity keeps intimacy alive. Assumption kills it slowly.'},
+  {title:'Love Language Act',type:'empathy',icon:'💝',dur:'varies',
+   desc:'Recall your partner\'s primary love language. Do one specific thing for it today.',
+   steps:['Identify their love language','Plan one intentional act for it','Do it without announcement','Don\'t expect something in return','Note their reaction — were you right?'],
+   benefit:'Love delivered in the wrong language often goes unfelt, regardless of sincerity.'},
+  {title:'Intentional Affection',type:'empathy',icon:'🤗',dur:'5 min',
+   desc:'Hug your partner for 20 full seconds. Hold until you both relax into it.',
+   steps:['Find a quiet moment','Initiate — no reason needed','Don\'t pull away first','Notice when the hug shifts from habitual to real','Do this at least twice today'],
+   benefit:'A 20-second hug releases oxytocin. Most couples\' hugs last 3 seconds.'},
+  {title:'Phone-Free Morning',type:'discipline',icon:'📵',dur:'30 min',
+   desc:'Don\'t touch your phone for the first 30 minutes after waking.',
+   steps:['Phone charging outside the bedroom','Complete morning routine first','Only check after 30 minutes','Notice what it feels like to choose your first thoughts','If hard, that\'s information worth having'],
+   benefit:'The first inputs of your day shape its emotional texture. You get to choose them.'},
+  {title:'Make Your Bed',type:'discipline',icon:'🛏️',dur:'2 min',
+   desc:'Make your bed immediately upon waking — before anything else.',
+   steps:['Stand up and make the bed','Do it to a standard you\'d be proud of','No exceptions, not even "I\'ll do it later"','Notice the sense of order it creates','Let it be the first completed task of the day'],
+   benefit:'One completed task before the day starts creates momentum.'},
+  {title:'3-Priority Day Plan',type:'discipline',icon:'🎯',dur:'5 min',
+   desc:'Write exactly 3 things that matter most today. Not a to-do list. Three priorities.',
+   steps:['Before opening email, write your 3 priorities','Each must be specific and completable today','Rank them: 1 is what matters most if nothing else gets done','Don\'t add more as the day goes on','At day\'s end: did you do them?'],
+   benefit:'Constraints force clarity.'},
+  {title:'Reactive Moments Tracker',type:'discipline',icon:'🌡️',dur:'all day',
+   desc:'Every time you react sharply — snap, sigh loudly, interrupt — make a tally.',
+   steps:['Set the intention at day\'s start','Don\'t suppress — just notice and count','Keep count in a note or small notebook','At day\'s end: write the number and one incident','Ask: what triggered the most reactive moments?'],
+   benefit:'You can\'t change what you don\'t measure.'},
+  {title:'Keep a Self-Promise',type:'discipline',icon:'🤜',dur:'varies',
+   desc:'Identify one promise you made to yourself that you\'ve been avoiding. Do it today.',
+   steps:['Identify the thing you said you\'d do','Don\'t minimise or negotiate with yourself','Schedule a specific time to do it today','Do it at that time','Notice how you feel after — file that feeling away'],
+   benefit:'Self-trust is built by keeping promises to yourself.'},
+  {title:'Intentional "No"',type:'discipline',icon:'🚫',dur:'varies',
+   desc:'Say no to one request or temptation today that isn\'t aligned with your priorities.',
+   steps:['Notice a moment you\'re about to say yes reflexively','Pause and ask: does this serve who I\'m trying to become?','If not, say no — politely but clearly','Don\'t over-explain or apologise excessively','Notice the discomfort — and that you survived it'],
+   benefit:'People who can\'t say no are at the mercy of everyone else\'s agenda.'},
+  {title:'Emotion Labeling',type:'discipline',icon:'🏷️',dur:'all day',
+   desc:'Three times today, pause and name exactly what you\'re feeling with a specific word.',
+   steps:['Set reminders at 10am, 2pm, and 7pm','At each: pause and ask "what am I actually feeling?"','Use a specific word — not "stressed" or "fine"','Write it down or say it aloud','Notice if naming it changes your relationship to it'],
+   benefit:'Labeling emotions reduces their intensity.'},
+  {title:'No Complaints for 24 Hours',type:'discipline',icon:'🤐',dur:'24 hours',
+   desc:'For 24 hours, don\'t complain — not aloud, not to yourself, not via text.',
+   steps:['Set a clear start time','Every time you feel the urge, notice it','Ask: is this solving anything, or just venting?','Replace complaints with observations or requests','At day\'s end: how many times did you catch yourself?'],
+   benefit:'Chronic complaining rewires your brain to find problems.'},
+  {title:'Keep a Visible Promise',type:'discipline',icon:'✅',dur:'varies',
+   desc:'Think of a small commitment to someone you\'ve been slow to follow through on. Do it today.',
+   steps:['Identify a commitment: "I\'ll send that", "I\'ll call"','Do it unprompted — before they ask','If you can\'t today, communicate proactively','Notice how it feels to be someone who follows through'],
+   benefit:'People who don\'t need to be chased are rare and trusted.'},
+  {title:'50-Minute Deep Work Block',type:'discipline',icon:'⚗️',dur:'50 min',
+   desc:'One task, all notifications off, door closed. No multitasking.',
+   steps:['Define the task before starting the timer','Close all tabs except what you need','Phone in another room or airplane mode','Work on only that one thing for 50 minutes','Take a proper break after — not a micro-scroll'],
+   benefit:'The ability to focus deeply is becoming rare and more valuable.'},
+  {title:'Boundary Reinforcement',type:'discipline',icon:'🛡️',dur:'varies',
+   desc:'Identify one boundary you\'ve been soft on. Decide what you\'ll do next time it\'s crossed.',
+   steps:['Think of a pattern you\'ve been tolerating','Name the boundary clearly to yourself','Decide your specific action next time (not a vague "I\'ll say something")','Don\'t announce it — just be clear internally','Act on it the next time it comes up'],
+   benefit:'Weak boundaries aren\'t kind — they create resentment and confusion.'},
+  {title:'Non-Screen Self-Care',type:'discipline',icon:'🌿',dur:'20 min',
+   desc:'Do something restorative today with no screens. A bath, walk, reading, cooking.',
+   steps:['Choose: bath, walk, book, cooking, sitting in sunlight','Do it for at least 20 minutes','No phone in reach','Notice what your brain does with nothing to scroll','File the feeling — this is real rest'],
+   benefit:'Screens are stimulation, not rest.'},
+];
+
+const NUDGES = {
+  morning: [
+    {text:'How do you want to show up today?', sub:'Take 60 seconds before the day takes over.'},
+    {text:'What\'s your one priority today?', sub:'Name it before the noise does.'},
+    {text:'Phone down for 30 more minutes.', sub:'Your best morning thoughts haven\'t arrived yet.'},
+    {text:'Before the day begins — breathe.', sub:'Three slow breaths. Then start.'},
+  ],
+  midday: [
+    {text:'Pause. How are you actually doing?', sub:'Not the surface answer — the real one.'},
+    {text:'Have you eaten and moved today?', sub:'Your body is the tool everything runs on.'},
+    {text:'What would your best self do in the next hour?', sub:'Small pivots matter.'},
+    {text:'Are you being reactive or intentional right now?', sub:'You still get to choose.'},
+  ],
+  evening: [
+    {text:'Time to close the day.', sub:'Reflect before sleep. Even 3 sentences.'},
+    {text:'Leave work at work — mentally.', sub:'Your partner deserves your full presence tonight.'},
+    {text:'What did you do today that you\'re proud of?', sub:'Name it before you forget it.'},
+    {text:'Did you say what needed to be said today?', sub:'If not — is there still time?'},
+  ],
+};
+
+// ════════════════════════════════
+//  STATE
+// ════════════════════════════════
+
+const KEY    = 'innercompass_v2';
+const EPOCH  = new Date('2026-01-01');
+
+function defaultState() {
+  return { days: {}, settings: { notif: {} }, dismissed: {} };
+}
+
+let state = (() => {
+  try { return JSON.parse(localStorage.getItem(KEY)) || defaultState(); } catch { return defaultState(); }
+})();
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+
+function todayKey() { return new Date().toLocaleDateString('en-CA'); }
+
+function dayIndex(dateStr) {
+  const d = new Date(dateStr || todayKey());
+  return Math.floor((d - EPOCH) / 86400000);
+}
+
+// ─── Relationship Commitments ───────────────────────────
+const BOUNDARIES = [
+  { id: 'share-plans',
+    title: 'Share plans ahead',
+    hint: 'Let her know before, not after — no surprises' },
+  { id: 'follow-through',
+    title: 'Follow through and include her feelings',
+    hint: 'Do what I said I would; acknowledge her perspective as I do' },
+  { id: 'name-confusion',
+    title: 'Name confusion early',
+    hint: 'When something is unclear, say so and ask for time to clarify — don\'t stew' },
+  { id: 'no-silence',
+    title: 'No silence longer than 1 min in a discussion',
+    hint: 'Stay present and verbal even when it\'s hard' },
+  { id: 'speak-10min',
+    title: 'Speak within 10 min when feeling hard',
+    hint: 'Don\'t go quiet; name what\'s happening for me within 10 minutes' },
+  { id: 'come-back-30',
+    title: 'Return within 30 min when disengaging',
+    hint: 'If I step away, come back within 30 mins — not hours' },
+  { id: 'come-prepared',
+    title: 'Come prepared when I ask for time',
+    hint: 'If I ask to talk later, have something real to say when the time comes' },
+  { id: 'mornings-light',
+    title: 'Keep mornings light and time-bounded',
+    hint: 'No heavy topics, no slacking — mornings set the tone' },
+  { id: 'interactions-light',
+    title: 'Daily interactions focused and light',
+    hint: 'Be present and pleasant in small moments, not distracted or heavy' },
+  { id: 'be-curious',
+    title: 'Be curious about her life',
+    hint: 'Ask, listen, remember — her world matters to me' },
+];
+
+function ensureDay(k) {
+  if (!state.days[k]) state.days[k] = {
+    mood: 0,
+    gratitude: '',
+    habits: { walk: false, exercise: false, reflected: false, partner: false },
+    reflect: { text: '', saved: false },
+    empathy: { perspective: '', shift: '', complete: false },
+    partner: {
+      habits: { attention: false, checkin: false, appreciation: false, affection: false },
+      appreciation: '',
+      assessment: 0,
+      intention: ''
+    },
+    boundaries: {}
+  };
+  // Patch older entries that predate boundaries
+  if (!state.days[k].boundaries) state.days[k].boundaries = {};
+  return state.days[k];
+}
+
+function todayData() { return ensureDay(todayKey()); }
+
+function computeStreak() {
+  let streak = 0;
+  const cur = new Date(todayKey());
+  while (true) {
+    const k = cur.toLocaleDateString('en-CA');
+    const d = state.days[k];
+    const done = d ? Object.values(d.habits).filter(Boolean).length : 0;
+    if (done < 2) break;
+    streak++;
+    cur.setDate(cur.getDate() - 1);
+  }
+  return streak;
+}
+
+function totalDays() {
+  return Object.values(state.days).filter(d => d && Object.values(d.habits).filter(Boolean).length >= 2).length;
+}
+
+// ════════════════════════════════
+//  RENDER
+// ════════════════════════════════
+
+function renderBoundaries() {
+  const el = document.getElementById('boundariesCard');
+  if (!el) return;
+  const d = todayData();
+  const bounds = d.boundaries || {};
+  const done = BOUNDARIES.filter(b => bounds[b.id]).length;
+  const total = BOUNDARIES.length;
+  const pct = Math.round((done / total) * 100);
+
+  const rows = BOUNDARIES.map(b => {
+    const checked = !!bounds[b.id];
+    return `<div class="boundary-item${checked ? ' done' : ''}" onclick="toggleBoundary('${b.id}')">
+      <div class="boundary-cb">${checked ? '✓' : ''}</div>
+      <div>
+        <div class="boundary-title">${b.title}</div>
+        <div class="boundary-hint">${b.hint}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="boundary-progress">
+      <div class="bp-label">${done === total ? '✨ All kept today' : `Kept today`}</div>
+      <div class="bp-count">${done}<span style="font-size:14px;font-weight:500;color:var(--muted)"> / ${total}</span></div>
+    </div>
+    <div class="bp-bar"><div class="bp-bar-fill" style="width:${pct}%"></div></div>
+    ${rows}`;
+}
+
+function toggleBoundary(id) {
+  const d = todayData();
+  if (!d.boundaries) d.boundaries = {};
+  d.boundaries[id] = !d.boundaries[id];
+  save();
+  renderBoundaries();
+}
+
+function render() {
+  ensureDay(todayKey());
+  renderHeader();
+  renderNudge();
+  renderMood();
+  renderDotGrid();
+  renderPractice();
+  renderGratitude();
+  renderHabits();
+  renderReflect();
+  renderEmpathy();
+  renderPartner();
+  renderJournal();
+  renderBoundaries();
+  renderNotifSettings();
+  checkNotifSetupBanner();
+  renderDataStats();
+}
+
+function renderHeader() {
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = g;
+  const d = new Date();
+  document.getElementById('dateDisplay').textContent =
+    d.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+  document.getElementById('streakCount').textContent = computeStreak() || '—';
+}
+
+function renderNudge() {
+  const h = new Date().getHours();
+  const period = h < 12 ? 'morning' : h < 17 ? 'midday' : 'evening';
+  const pool = NUDGES[period];
+  const n = pool[dayIndex() % pool.length];
+  const labels = { morning:'☀️ Morning', midday:'🌤 Midday', evening:'🌙 Evening' };
+  document.getElementById('nudgeCard').innerHTML =
+    `<div class="nudge-period">${labels[period]}</div>
+     <div class="nudge-text">${n.text}</div>
+     <div class="nudge-sub">${n.sub}</div>`;
+}
+
+function renderMood() {
+  const mood = todayData().mood;
+  document.querySelectorAll('.mood-btn').forEach(btn => {
+    btn.classList.toggle('selected', +btn.dataset.mood === mood);
+  });
+}
+
+function renderDotGrid() {
+  const cols = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(todayKey());
+    d.setDate(d.getDate() - i);
+    const k = d.toLocaleDateString('en-CA');
+    const day = state.days[k];
+    const done = day ? Object.values(day.habits).filter(Boolean).length : 0;
+    const isToday = i === 0;
+    let cls = '';
+    if (done >= 2)           cls = 'full';
+    else if (done === 1)     cls = 'partial';
+    else if (isToday)        cls = 'today-empty';
+    const label = d.toLocaleDateString('en-US', {weekday:'narrow'});
+    cols.push(`<div class="dotgrid-day">
+      <div class="dotgrid-label">${label}</div>
+      <div class="dotgrid-dot ${cls}"></div>
+    </div>`);
+  }
+  document.getElementById('dotGrid').innerHTML = cols.join('');
+}
+
+function renderPractice() {
+  const ex = EXERCISES[dayIndex() % EXERCISES.length];
+  const done = todayData().habits.exercise;
+  const typeLabels = {physical:'Physical',mindful:'Mindfulness',empathy:'Empathy',discipline:'Discipline'};
+  const tc = `type-${ex.type}`;
+  const steps = ex.steps.map((s,i) =>
+    `<div class="step"><div class="step-n">${i+1}</div><div class="step-t">${s}</div></div>`).join('');
+  document.getElementById('practiceCard').innerHTML = `
+    <div class="practice-summary" onclick="togglePractice()">
+      <span class="practice-icon">${ex.icon}</span>
+      <div class="practice-info">
+        <div class="practice-name">${ex.title}</div>
+        <div class="practice-meta">⏱ ${ex.dur} · <span class="${tc}" style="font-size:11px;font-weight:700;">${typeLabels[ex.type]||ex.type}</span></div>
+      </div>
+      ${done ? '<span style="color:var(--success);font-weight:700;font-size:13px;">✓</span>' : '<span class="practice-chevron" id="practChevron">▶</span>'}
+    </div>
+    <div class="practice-detail" id="practDetail">
+      <div class="practice-desc">${ex.desc}</div>
+      ${steps}
+      <div class="benefit-box"><strong>Why this matters</strong>${ex.benefit}</div>
+      <button class="btn ${done?'btn-success':'btn-primary'}" style="margin-top:14px;"
+        onclick="markExerciseDone()" ${done?'disabled style="opacity:.75;"':''}>
+        ${done?'✓ Completed':'Mark as Complete'}
+      </button>
+    </div>`;
+}
+
+function togglePractice() {
+  const detail = document.getElementById('practDetail');
+  const chev   = document.getElementById('practChevron');
+  if (!detail) return;
+  const open = detail.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', open);
+}
+
+function renderGratitude() {
+  const d = todayData();
+  const el = document.getElementById('gratArea');
+  if (el && el !== document.activeElement) {
+    el.value = d.gratitude || '';
+    updateCC('gratArea', 'gratCC', 120);
+  }
+}
+
+function renderHabits() {
+  const h = todayData().habits;
+  ['walk','exercise','reflected','partner'].forEach(k => {
+    const item = document.getElementById(`habit-${k}`);
+    const cb   = document.getElementById(`hc-${k}`);
+    if (!item) return;
+    item.classList.toggle('done', !!h[k]);
+    if (cb) cb.textContent = h[k] ? '✓' : '';
+  });
+}
+
+function renderReflect() {
+  const di = dayIndex();
+  const p  = REFLECT_PROMPTS[di % REFLECT_PROMPTS.length];
+  const d  = todayData();
+  const meta = CAT_META[p.cat];
+  document.getElementById('reflectCard').innerHTML = `
+    <div class="cat-row">
+      <span class="type-badge ${meta.cls}">${meta.label}</span>
+      ${d.reflect.saved ? '<span class="saved-badge">✓ Saved</span>' : ''}
+    </div>
+    <div class="reflect-prompt">${p.text}</div>
+    <div class="prompt-hint">Max 280 characters — be honest, be brief.</div>
+    <textarea class="journal-area" id="reflectArea" maxlength="280"
+      placeholder="Write honestly. Don't edit yourself...">${d.reflect.text || ''}</textarea>
+    <div class="char-bar" id="reflectCC">${(d.reflect.text||'').length}/280</div>
+    <button class="btn btn-primary" style="margin-top:14px;"
+      onclick="saveReflect()">Save Reflection</button>`;
+
+  const ra = document.getElementById('reflectArea');
+  if (ra) {
+    updateCC('reflectArea', 'reflectCC', 280);
+    ra.addEventListener('input', () => updateCC('reflectArea', 'reflectCC', 280));
+  }
+}
+
+function renderEmpathy() {
+  const di = dayIndex();
+  const sc = EMPATHY_SCENARIOS[di % EMPATHY_SCENARIOS.length];
+  const d  = todayData();
+  const tm = TYPE_META[sc.type];
+  document.getElementById('empathyCard').innerHTML = `
+    <div class="scenario-type-row">
+      <span class="type-badge ${tm.cls}">${sc.typeLabel}</span>
+      ${d.empathy.complete ? '<span class="saved-badge">✓ Done</span>' : ''}
+    </div>
+    <div class="scenario-title">${sc.title}</div>
+    <div class="scenario-context">${sc.context}</div>
+    <div class="scenario-q">${sc.q1}</div>
+    <textarea class="journal-area" id="empPerspArea" maxlength="280"
+      placeholder="Write in their perspective, not yours...">${d.empathy.perspective||''}</textarea>
+    <div class="char-bar" id="empPerspCC">${(d.empathy.perspective||'').length}/280</div>
+    <div style="height:14px"></div>
+    <div class="scenario-q">${sc.q2}</div>
+    <textarea class="journal-area" id="empShiftArea" maxlength="200"
+      placeholder="Even a small shift counts...">${d.empathy.shift||''}</textarea>
+    <div class="char-bar" id="empShiftCC">${(d.empathy.shift||'').length}/200</div>
+    <button class="btn ${d.empathy.complete?'btn-success':'btn-primary'}" style="margin-top:14px;"
+      onclick="saveEmpathy()" ${d.empathy.complete?'disabled style="opacity:.75;"':''}>
+      ${d.empathy.complete?'✓ Completed':'Mark Complete'}
+    </button>`;
+
+  wireCC('empPerspArea','empPerspCC',280);
+  wireCC('empShiftArea','empShiftCC',200);
+}
+
+function renderPartner() {
+  const d = todayData().partner;
+  ['attention','checkin','appreciation','affection'].forEach(k => {
+    const item = document.getElementById(`ph-${k}`);
+    const cb   = document.getElementById(`phc-${k}`);
+    if (!item) return;
+    item.classList.toggle('done', !!d.habits[k]);
+    if (cb) cb.textContent = d.habits[k] ? '✓' : '';
+  });
+
+  const aa = document.getElementById('pApprecArea');
+  if (aa && aa !== document.activeElement) {
+    aa.value = d.appreciation || '';
+    updateCC('pApprecArea','pApprecCC',150);
+  }
+
+  document.querySelectorAll('.assess-btn').forEach(btn => {
+    btn.classList.toggle('selected', +btn.dataset.val === d.assessment);
+  });
+
+  const ia = document.getElementById('pIntentArea');
+  if (ia && ia !== document.activeElement) {
+    ia.value = d.intention || '';
+    updateCC('pIntentArea','pIntentCC',120);
+  }
+}
+
+function renderJournal() {
+  renderStats();
+  renderWeek();
+  renderQuarter();
+  renderArchive();
+}
+
+function renderStats() {
+  const streak = computeStreak();
+  const total  = totalDays();
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-pill accent">
+      <div class="stat-num">🔥 ${streak}</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">${total}</div>
+      <div class="stat-label">Days Done</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-num">${Object.keys(state.days).length}</div>
+      <div class="stat-label">Days in App</div>
+    </div>`;
+}
+
+function renderWeek() {
+  // Mon–Sun week containing today
+  const today = new Date(todayKey());
+  const dow = today.getDay(); // 0=Sun
+  const monOffset = dow === 0 ? -6 : 1 - dow;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + monOffset);
+
+  let habits = {walk:0,exercise:0,reflected:0,partner:0};
+  let moods = [], reflectDays = 0;
+  const dotCols = [];
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const k = d.toLocaleDateString('en-CA');
+    const day = state.days[k];
+    const isFuture = d > today;
+    const isToday = k === todayKey();
+    const done = day ? Object.values(day.habits).filter(Boolean).length : 0;
+
+    let cls = '';
+    if (!isFuture) {
+      if (done >= 2)        cls = 'full';
+      else if (done === 1)  cls = 'partial';
+      else if (isToday)     cls = 'today-e';
+    }
+
+    if (day && !isFuture) {
+      Object.keys(habits).forEach(h => { if (day.habits[h]) habits[h]++; });
+      if (day.mood) moods.push(day.mood);
+      if (day.reflect?.saved || day.reflect?.text) reflectDays++;
+    }
+
+    dotCols.push(`<div class="week-col">
+      <div class="week-day">${dayNames[i]}</div>
+      <div class="week-dot ${cls}"></div>
+    </div>`);
+  }
+
+  const daysElapsed = Math.max(1, dow === 0 ? 7 : dow);
+  const habitsPct = Math.round(Object.values(habits).reduce((a,b)=>a+b,0) / (daysElapsed * 4) * 100);
+  const avgMood = moods.length ? (moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1) : '—';
+  const moodEmoji = ['','😔','😐','🙂','😊','🌟'];
+  const moodDisplay = moods.length ? moodEmoji[Math.round(+avgMood)] + ' ' + avgMood : '—';
+
+  document.getElementById('weekCard').innerHTML = `
+    <div class="week-grid">${dotCols.join('')}</div>
+    <div style="display:flex;gap:14px;font-size:13px;color:var(--muted);margin-top:2px;">
+      <span>Habits: <strong style="color:var(--text)">${habitsPct}%</strong></span>
+      <span>Mood avg: <strong style="color:var(--text)">${moodDisplay}</strong></span>
+      <span>Reflected: <strong style="color:var(--text)">${reflectDays}/7</strong></span>
+    </div>`;
+}
+
+function renderQuarter() {
+  const today = new Date(todayKey());
+  let totalDone = 0, longestStreak = 0, curStreak = 0, moods = [];
+  let pHabitsTotal = 0, pHabitsPossible = 0;
+
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const k = d.toLocaleDateString('en-CA');
+    const day = state.days[k];
+    const done = day ? Object.values(day.habits).filter(Boolean).length : 0;
+    if (done >= 2) {
+      totalDone++;
+      curStreak++;
+      longestStreak = Math.max(longestStreak, curStreak);
+    } else { curStreak = 0; }
+    if (day?.mood) moods.push(day.mood);
+    if (day?.partner) {
+      const ph = Object.values(day.partner.habits).filter(Boolean).length;
+      pHabitsTotal   += ph;
+      pHabitsPossible += 4;
+    }
+  }
+
+  const avgMood = moods.length ? (moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1) : '—';
+  const moodEmoji = ['','😔','😐','🙂','😊','🌟'];
+  const me = moods.length ? moodEmoji[Math.round(+avgMood)] : '';
+  const partnerPct = pHabitsPossible ? Math.round(pHabitsTotal/pHabitsPossible*100) : '—';
+
+  document.getElementById('qtrCard').innerHTML = `
+    <div class="qtr-row"><span class="qtr-key">Days completed</span><span class="qtr-val">${totalDone} / 90</span></div>
+    <div class="qtr-row"><span class="qtr-key">Longest streak</span><span class="qtr-val">🔥 ${longestStreak}</span></div>
+    <div class="qtr-row"><span class="qtr-key">Average mood</span><span class="qtr-val">${me} ${avgMood}</span></div>
+    <div class="qtr-row"><span class="qtr-key">Partner habit consistency</span><span class="qtr-val">${partnerPct}%</span></div>`;
+}
+
+function renderArchive() {
+  const entries = Object.entries(state.days)
+    .filter(([, d]) => d && (d.reflect?.text || d.gratitude || d.partner?.appreciation))
+    .sort(([a],[b]) => b.localeCompare(a))
+    .slice(0, 30);
+
+  if (!entries.length) {
+    document.getElementById('archiveCard').innerHTML =
+      '<div style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0;">Your reflections will appear here.</div>';
+    return;
+  }
+
+  const items = entries.map(([k, d]) => {
+    const dateLabel = new Date(k).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const preview = (d.reflect?.text || d.gratitude || '').slice(0, 80) || '—';
+    const moodEmoji = ['','😔','😐','🙂','😊','🌟'];
+    const moodStr = d.mood ? moodEmoji[d.mood] : '';
+    const habits = d.habits ? Object.values(d.habits).filter(Boolean).length : 0;
+    const id = `arc-${k.replace(/-/g,'_')}`;
+    return `
+      <div class="archive-item" onclick="toggleArchive('${id}')">
+        <div class="archive-date">${dateLabel} ${moodStr}</div>
+        <div class="archive-preview">${preview}${(d.reflect?.text||'').length > 80 ? '…' : ''}</div>
+        <div class="archive-meta">${habits}/4 habits</div>
+        <div class="archive-full" id="${id}">
+          ${d.reflect?.text ? `<div class="archive-section">
+            <div class="archive-section-label">Reflection</div>
+            <div class="archive-section-text">${d.reflect.text}</div>
+          </div>` : ''}
+          ${d.gratitude ? `<div class="archive-section">
+            <div class="archive-section-label">Gratitude</div>
+            <div class="archive-section-text">${d.gratitude}</div>
+          </div>` : ''}
+          ${d.partner?.appreciation ? `<div class="archive-section">
+            <div class="archive-section-label">Partner Appreciation</div>
+            <div class="archive-section-text">${d.partner.appreciation}</div>
+          </div>` : ''}
+          ${d.partner?.intention ? `<div class="archive-section">
+            <div class="archive-section-label">Partner Intention</div>
+            <div class="archive-section-text">${d.partner.intention}</div>
+          </div>` : ''}
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('archiveCard').innerHTML = items.join('');
+}
+
+// ════════════════════════════════
+//  ACTIONS
+// ════════════════════════════════
+
+function setMood(val) {
+  todayData().mood = val;
+  save();
+  renderMood();
+}
+
+function toggleHabit(h) {
+  const d = todayData();
+  d.habits[h] = !d.habits[h];
+  save();
+  renderHabits();
+  renderDotGrid();
+  renderHeader();
+}
+
+function markExerciseDone() {
+  const d = todayData();
+  d.habits.exercise = true;
+  save();
+  renderPractice();
+  renderHabits();
+  renderDotGrid();
+  renderHeader();
+}
+
+function saveReflect() {
+  const d = todayData();
+  const el = document.getElementById('reflectArea');
+  if (!el) return;
+  d.reflect.text = el.value;
+  d.reflect.saved = true;
+  if (el.value.trim()) d.habits.reflected = true;
+  save();
+  renderReflect();
+  renderHabits();
+  renderDotGrid();
+  renderHeader();
+}
+
+function saveEmpathy() {
+  const d = todayData();
+  const pe = document.getElementById('empPerspArea');
+  const se = document.getElementById('empShiftArea');
+  d.empathy.perspective = pe?.value || '';
+  d.empathy.shift = se?.value || '';
+  d.empathy.complete = true;
+  save();
+  renderEmpathy();
+}
+
+function togglePHabit(h) {
+  const d = todayData();
+  d.partner.habits[h] = !d.partner.habits[h];
+  // Auto-check "partner" main habit if ≥2 partner habits done
+  const phDone = Object.values(d.partner.habits).filter(Boolean).length;
+  if (phDone >= 2) d.habits.partner = true;
+  save();
+  renderPartner();
+  renderHabits();
+  renderDotGrid();
+  renderHeader();
+}
+
+function setAssessment(val) {
+  todayData().partner.assessment = val;
+  save();
+  document.querySelectorAll('.assess-btn').forEach(btn => {
+    btn.classList.toggle('selected', +btn.dataset.val === val);
+  });
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  document.querySelector('.main-content').scrollTop = 0;
+  if (name === 'journal') renderJournal();
+}
+
+function toggleArchive(id) {
+  document.getElementById(id)?.classList.toggle('open');
+}
+
+// ── Char counters ──
+function updateCC(areaId, ccId, max) {
+  const el = document.getElementById(areaId);
+  const cc = document.getElementById(ccId);
+  if (!el || !cc) return;
+  const len = el.value.length;
+  cc.textContent = `${len}/${max}`;
+  cc.classList.toggle('over', len > max * 0.85);
+}
+
+function wireCC(areaId, ccId, max) {
+  const el = document.getElementById(areaId);
+  if (!el) return;
+  updateCC(areaId, ccId, max);
+  el.addEventListener('input', () => updateCC(areaId, ccId, max));
+}
+
+// ── Autosave wiring ──
+let saveTimers = {};
+function autosave(field, getter, delay = 800) {
+  clearTimeout(saveTimers[field]);
+  saveTimers[field] = setTimeout(() => { getter(); save(); }, delay);
+}
+
+function wireAutosave(areaId, ccId, max, updater) {
+  const el = document.getElementById(areaId);
+  if (!el) return;
+  updateCC(areaId, ccId, max);
+  el.addEventListener('input', () => {
+    updateCC(areaId, ccId, max);
+    autosave(areaId, updater);
+  });
+}
+
+function setupAutosaves() {
+  wireAutosave('gratArea', 'gratCC', 120, () => {
+    const d = todayData();
+    d.gratitude = document.getElementById('gratArea')?.value || '';
+  });
+  wireAutosave('pApprecArea', 'pApprecCC', 150, () => {
+    const d = todayData();
+    d.partner.appreciation = document.getElementById('pApprecArea')?.value || '';
+    const len = (d.partner.appreciation || '').trim().length;
+    if (len > 0) { d.habits.partner = true; renderHabits(); renderDotGrid(); renderHeader(); }
+  });
+  wireAutosave('pIntentArea', 'pIntentCC', 120, () => {
+    todayData().partner.intention = document.getElementById('pIntentArea')?.value || '';
+  });
+}
+
+// ── Notifications ──
+const notifTimers = {};
+
+const NOTIF_SCHEDULE = [
+  { key:'morning', hour:8,  min:0,  label:'Morning',  time:'8:00 AM',  icon:'☀️', tab:'today'   },
+  { key:'midday',  hour:13, min:0,  label:'Midday',   time:'1:00 PM',  icon:'🌤',  tab:'reflect'  },
+  { key:'evening', hour:20, min:0,  label:'Evening',  time:'8:00 PM',  icon:'🌙', tab:'journal'  },
+];
+
+function notifBody(key) {
+  const di = dayIndex();
+  const pools = {
+    morning: NUDGES.morning,
+    midday:  NUDGES.midday,
+    evening: NUDGES.evening,
+  };
+  const n = pools[key][di % pools[key].length];
+  return n.text;
+}
+
+async function fireNotif(key, tab) {
+  if (Notification.permission !== 'granted') return;
+  const body = notifBody(key);
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('Inner Compass', {
+      body,
+      icon: './icon.png',
+      badge: './icon.png',
+      tag: 'compass-' + key,
+      renotify: false,
+      data: { tab }
+    });
+  } catch {
+    // Fallback if SW not available (desktop browser without SW)
+    try { new Notification('Inner Compass', { body, icon: './icon.png' }); } catch {}
+  }
+}
+
+function scheduleNotifs() {
+  Object.values(notifTimers).forEach(t => clearTimeout(t));
+  if (Notification.permission !== 'granted') return;
+  if (!state.settings?.notif) return;
+
+  const now = new Date();
+  NOTIF_SCHEDULE.forEach(({ key, hour, min, tab }) => {
+    if (!state.settings.notif[key]) return;
+    let target = new Date();
+    target.setHours(hour, min, 0, 0);
+    // If time already passed today, skip (will be re-scheduled next day when app opens)
+    if (target <= now) return;
+    const delay = target - now;
+    notifTimers[key] = setTimeout(() => {
+      fireNotif(key, tab);
+    }, delay);
+  });
+}
+
+function renderNotifSettings() {
+  const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  const notif = state.settings?.notif || {};
+
+  const rows = NOTIF_SCHEDULE.map(({ key, label, time, icon }) => {
+    const checked = !!notif[key];
+    return `<div class="notif-time-row">
+      <div>
+        <div class="ntl">${icon} ${label}</div>
+        <div class="nts">${time} daily</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleNotif('${key}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+  }).join('');
+
+  const permBadge = {
+    granted:     '<span style="color:var(--success);font-weight:700;font-size:12px;">✓ Allowed</span>',
+    denied:      '<span style="color:var(--accent);font-weight:700;font-size:12px;">✗ Blocked</span>',
+    default:     '<span style="color:var(--amber);font-weight:700;font-size:12px;">Not yet set</span>',
+    unsupported: '<span style="color:var(--muted);font-size:12px;">Not supported</span>',
+  }[perm] || '';
+
+  const tip = perm === 'denied'
+    ? '<div class="notif-tip"><strong>Notifications are blocked.</strong> To re-enable: go to your browser/phone Settings → find Inner Compass → allow notifications.</div>'
+    : perm === 'granted'
+    ? '<div class="notif-tip"><strong>How it works:</strong> Open the app each morning and notifications will be scheduled for the day. On iPhone, keep Safari running in the background for best results.</div>'
+    : '<div class="notif-tip"><strong>Tip:</strong> Enable at least one nudge, then open the app each morning. The day\'s notifications will be scheduled from that moment.</div>';
+
+  document.getElementById('notifSettingsCard').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin-bottom:0">Permission</div>
+      ${permBadge}
+    </div>
+    ${rows}
+    <button class="btn btn-outline" style="margin-top:14px;font-size:13px;padding:10px;"
+      onclick="testNotif()">Send a test notification</button>
+    ${tip}`;
+}
+
+async function toggleNotif(period, enabled) {
+  if (!state.settings) state.settings = { notif: {} };
+  if (enabled && Notification.permission !== 'granted') {
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported in this browser.');
+      renderNotifSettings(); return;
+    }
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') {
+      alert('Notification permission was denied. Please enable it in your device settings.');
+      renderNotifSettings(); return;
+    }
+  }
+  state.settings.notif[period] = enabled;
+  save();
+  scheduleNotifs();
+  renderNotifSettings();
+  checkNotifSetupBanner();
+}
+
+async function setupAllNotifs() {
+  if (!state.settings) state.settings = { notif: {} };
+  if (!('Notification' in window)) { alert('Notifications are not supported in this browser.'); return; }
+  const p = await Notification.requestPermission();
+  if (p !== 'granted') {
+    alert('Notification permission denied. Please enable it in Settings → this site → Notifications.');
+    return;
+  }
+  NOTIF_SCHEDULE.forEach(({ key }) => { state.settings.notif[key] = true; });
+  state.dismissed.notifSetup = true;
+  save();
+  scheduleNotifs();
+  checkNotifSetupBanner();
+  renderNotifSettings();
+  // Confirm
+  fireNotif('morning', 'today');
+}
+
+async function testNotif() {
+  if (Notification.permission !== 'granted') {
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') { renderNotifSettings(); return; }
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification('Inner Compass', {
+      body: '🧭 Notifications are working! You\'ll get nudges throughout the day.',
+      icon: './icon.png', badge: './icon.png', tag: 'compass-test'
+    });
+  } catch {
+    new Notification('Inner Compass', { body: '🧭 Notifications are working!' });
+  }
+}
+
+function checkNotifSetupBanner() {
+  const banner = document.getElementById('notifSetup');
+  if (!banner) return;
+  const allOn = NOTIF_SCHEDULE.every(({ key }) => state.settings?.notif?.[key]);
+  const dismissed = state.dismissed?.notifSetup;
+  const unsupported = !('Notification' in window);
+  banner.style.display = (allOn || dismissed || unsupported) ? 'none' : 'flex';
+}
+
+function dismissNotifSetup() {
+  state.dismissed.notifSetup = true;
+  save();
+  checkNotifSetupBanner();
+}
+
+// ── Export / Import ──
+function exportData() {
+  const date = new Date().toLocaleDateString('en-CA');
+  const payload = JSON.stringify(state, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `inner-compass-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // Basic sanity check
+      if (typeof parsed !== 'object' || !parsed.days) {
+        alert('This file doesn\'t look like an Inner Compass backup.');
+        return;
+      }
+      if (!confirm(`Import ${Object.keys(parsed.days).length} days of data?\n\nThis will merge with your current data — existing entries on the same date will be kept as-is.`)) return;
+
+      // Merge days (don't overwrite existing dates, just add missing ones)
+      Object.entries(parsed.days).forEach(([k, v]) => {
+        if (!state.days[k]) state.days[k] = v;
+      });
+      // Restore stats if they're better than current
+      if ((parsed.stats?.totalDays || 0) > (state.stats?.totalDays || 0)) {
+        state.stats = parsed.stats;
+      }
+      save();
+      render();
+      setupAutosaves();
+      alert(`Imported ${Object.keys(parsed.days).length} days. Your data is up to date.`);
+    } catch {
+      alert('Could not read file. Make sure it\'s a valid Inner Compass export.');
+    }
+    // Reset input so the same file can be re-selected if needed
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function renderDataStats() {
+  const el = document.getElementById('dataStats');
+  if (!el) return;
+  const days   = Object.keys(state.days).length;
+  const oldest = days > 0 ? Object.keys(state.days).sort()[0] : null;
+  const reflections = Object.values(state.days).filter(d =>
+    d?.reflect?.text?.trim()
+  ).length;
+  const partner = Object.values(state.days).filter(d =>
+    d?.partner?.appreciation?.trim()
+  ).length;
+  el.innerHTML = `
+    <strong style="color:var(--text)">What's stored on this device</strong><br>
+    ${days} day${days !== 1 ? 's' : ''} of data
+    ${oldest ? `· since ${new Date(oldest + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}` : ''}<br>
+    ${reflections} reflection${reflections !== 1 ? 's' : ''} written
+    · ${partner} partner note${partner !== 1 ? 's' : ''}
+  `;
+}
+
+function confirmReset() {
+  if (confirm('Reset all data? This cannot be undone.')) {
+    localStorage.removeItem(KEY);
+    state = defaultState();
+    save();
+    render();
+    setupAutosaves();
+  }
+}
+
+function dismissInstall() {
+  state.dismissed.install = true;
+  save();
+  document.getElementById('installBanner').style.display = 'none';
+}
+
+// ── Flush on hide ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    Object.values(saveTimers).forEach(t => clearTimeout(t));
+    const grat = document.getElementById('gratArea');
+    if (grat) todayData().gratitude = grat.value;
+    const pApprec = document.getElementById('pApprecArea');
+    if (pApprec) todayData().partner.appreciation = pApprec.value;
+    const pIntent = document.getElementById('pIntentArea');
+    if (pIntent) todayData().partner.intention = pIntent.value;
+    save();
+  } else {
+    renderNudge(); renderHeader();
+  }
+});
+
+// ── Listen for SW → open tab ──
+navigator.serviceWorker?.addEventListener('message', e => {
+  if (e.data?.type === 'OPEN_TAB') showTab(e.data.tab || 'today');
+});
+
+// ── Handle ?tab= from notification click on cold start ──
+const urlTab = new URLSearchParams(location.search).get('tab');
+if (urlTab) showTab(urlTab);
+
+// ── Init ──
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+ensureDay(todayKey());
+render();
+setupAutosaves();
+scheduleNotifs();
+
+const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode:standalone)').matches;
+if (!isStandalone && !state.dismissed?.install) {
+  document.getElementById('installBanner').style.display = 'flex';
+}
+</script>
+</body>
+</html>
