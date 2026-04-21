@@ -1182,7 +1182,9 @@ function ensureDay(k) {
   };
   if (!state.days[k].boundaries) state.days[k].boundaries = {};
   if (!state.days[k].checkins)   state.days[k].checkins = [];
-  if (!state.plans)               state.plans = [];
+  if (!state.days[k].empathy)    state.days[k].empathy = { perspective: '', shift: '', complete: false };
+  if (!state.days[k].reflect)    state.days[k].reflect = { text: '', saved: false };
+  if (!state.plans)              state.plans = [];
   return state.days[k];
 }
 
@@ -1546,10 +1548,13 @@ function renderReflect() {
 }
 
 function renderEmpathy() {
+  const el = document.getElementById('empathyCard');
+  if (!el) return;
   const di = dayIndex();
   const sc = EMPATHY_SCENARIOS[di % EMPATHY_SCENARIOS.length];
   const d  = todayData();
-  const tm = TYPE_META[sc.type];
+  if (!d.empathy) d.empathy = { perspective: '', shift: '', complete: false };
+  const tm = TYPE_META[sc.type] || { cls: 'type-empathy', label: sc.typeLabel };
   document.getElementById('empathyCard').innerHTML = `
     <div class="scenario-type-row">
       <span class="type-badge ${tm.cls}">${sc.typeLabel}</span>
