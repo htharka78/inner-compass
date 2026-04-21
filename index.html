@@ -355,6 +355,111 @@
     .benefit-box { background: var(--plight); border-radius: var(--rsm); padding: 11px 13px; margin-top: 12px; font-size: 13px; color: var(--primary); line-height: 1.5; }
     .benefit-box strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
 
+    /* ── Check-in widget ── */
+    .checkin-card {
+      background: linear-gradient(135deg, #2D4A6A 0%, #1E3352 100%);
+      border-radius: var(--r); padding: 18px; margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(30,51,82,.35);
+    }
+    .checkin-prompt {
+      font-size: 17px; font-weight: 700; color: #fff;
+      line-height: 1.35; margin-bottom: 16px;
+    }
+    .checkin-faces {
+      display: flex; gap: 6px; margin-bottom: 14px;
+    }
+    .checkin-face {
+      flex: 1; font-size: 24px; text-align: center; padding: 8px 4px;
+      border-radius: var(--rsm); border: 2px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.08); cursor: pointer;
+      transition: transform .1s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .checkin-face:active { transform: scale(.88); }
+    .checkin-face.selected { background: rgba(255,255,255,.25); border-color: rgba(255,255,255,.6); transform: scale(1.1); }
+    .checkin-note-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .checkin-note-input {
+      flex: 1; background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2);
+      border-radius: var(--rsm); padding: 9px 12px; font-size: 14px;
+      color: #fff; font-family: inherit;
+      -webkit-appearance: none;
+    }
+    .checkin-note-input::placeholder { color: rgba(255,255,255,.4); }
+    .checkin-note-input:focus { outline: none; border-color: rgba(255,255,255,.5); }
+    .checkin-log-btn {
+      background: var(--accent); border: none; border-radius: var(--rsm);
+      color: #fff; font-size: 13px; font-weight: 700; padding: 9px 14px;
+      cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+      transition: opacity .15s;
+    }
+    .checkin-log-btn:active { opacity: .75; }
+    .checkin-log-btn:disabled { opacity: .4; cursor: default; }
+    .checkin-history {
+      display: flex; gap: 8px; align-items: center; margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .checkin-dot {
+      font-size: 16px; display: flex; align-items: center; gap: 3px;
+    }
+    .checkin-dot .ct { font-size: 10px; color: rgba(255,255,255,.5); }
+    .checkin-count {
+      font-size: 11px; color: rgba(255,255,255,.5); margin-left: 2px;
+    }
+
+    /* ── Plans to share ── */
+    .plans-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .plans-add-btn {
+      background: var(--primary); color: #fff; border: none;
+      border-radius: 999px; width: 28px; height: 28px; font-size: 18px;
+      font-weight: 300; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; transition: opacity .15s;
+    }
+    .plans-add-btn:active { opacity: .7; }
+    .plans-add-row {
+      display: flex; gap: 8px; margin-bottom: 10px; display: none;
+    }
+    .plans-add-row.open { display: flex; }
+    .plans-input {
+      flex: 1; border: 1.5px solid var(--primary); border-radius: var(--rsm);
+      padding: 9px 12px; font-size: 14px; font-family: inherit;
+      background: var(--plight); color: var(--text);
+      -webkit-appearance: none;
+    }
+    .plans-input:focus { outline: none; }
+    .plans-save-btn {
+      background: var(--primary); color: #fff; border: none;
+      border-radius: var(--rsm); padding: 9px 14px; font-size: 13px;
+      font-weight: 700; cursor: pointer; flex-shrink: 0;
+    }
+    .plan-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .plan-item:last-child { border-bottom: none; }
+    .plan-item.shared .plan-text { opacity: .45; text-decoration: line-through; }
+    .plan-text { font-size: 14px; font-weight: 600; flex: 1; line-height: 1.35; }
+    .plan-age  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .plan-share-btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 999px;
+      font-size: 11px; font-weight: 700; padding: 4px 10px; cursor: pointer;
+      flex-shrink: 0; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+    }
+    .plan-done-badge {
+      font-size: 11px; font-weight: 700; color: var(--success); flex-shrink: 0; padding-top: 2px;
+    }
+    .plans-clear {
+      background: none; border: none; font-size: 11px; color: var(--muted);
+      cursor: pointer; padding: 8px 0 0; display: block; width: 100%;
+      text-align: right; text-decoration: underline;
+    }
+    .plans-empty { font-size: 13px; color: var(--success); font-weight: 600; }
+
     /* ── Boundaries checklist ── */
     .boundary-item {
       display: flex; align-items: flex-start; gap: 12px;
@@ -450,52 +555,49 @@
 
     <!-- ══ TODAY ══ -->
     <section class="tab-view active" id="tab-today">
-      <!-- Notification setup prompt (shown until dismissed or set up) -->
+
+      <!-- Notification setup prompt -->
       <div class="notif-setup" id="notifSetup" style="display:none">
         <span class="ns-icon">🔔</span>
         <div class="ns-body">
-          <div class="ns-title">Stay on track with daily nudges</div>
-          <div class="ns-sub">Get gentle reminders at 8 AM, 1 PM, and 8 PM — even when the app is closed.</div>
+          <div class="ns-title">Enable nudges — 6× a day</div>
+          <div class="ns-sub">Targeted check-ins from morning to evening, including a pre-evening reset before you get home.</div>
           <button class="ns-btn" onclick="setupAllNotifs()">Enable notifications</button>
         </div>
         <button class="ns-dismiss" onclick="dismissNotifSetup()">×</button>
       </div>
 
-      <div class="nudge-card" id="nudgeCard"></div>
+      <!-- ① Quick check-in (most prominent) -->
+      <div class="checkin-card" id="checkinCard"></div>
 
-      <!-- Mood -->
+      <!-- ② Plans to Share -->
       <div class="card">
-        <div class="card-title">How are you today?</div>
-        <div class="mood-row" id="moodRow">
-          <button class="mood-btn" data-mood="1" onclick="setMood(1)">😔</button>
-          <button class="mood-btn" data-mood="2" onclick="setMood(2)">😐</button>
-          <button class="mood-btn" data-mood="3" onclick="setMood(3)">🙂</button>
-          <button class="mood-btn" data-mood="4" onclick="setMood(4)">😊</button>
-          <button class="mood-btn" data-mood="5" onclick="setMood(5)">🌟</button>
+        <div class="plans-header">
+          <div class="card-title" style="margin-bottom:0">Plans to Share</div>
+          <button class="plans-add-btn" onclick="togglePlanInput()" title="Add a plan">+</button>
         </div>
+        <div class="plans-add-row" id="planAddRow">
+          <input class="plans-input" id="planInput" maxlength="120"
+            placeholder="Something to share with her..."
+            onkeydown="if(event.key==='Enter')savePlan()">
+          <button class="plans-save-btn" onclick="savePlan()">Add</button>
+        </div>
+        <div id="plansList"></div>
       </div>
 
-      <!-- 7-day grid -->
+      <!-- ③ Current nudge -->
+      <div class="nudge-card" id="nudgeCard"></div>
+
+      <!-- ④ 7-day grid -->
       <div class="card">
         <div class="card-title">Last 7 Days</div>
         <div class="dotgrid" id="dotGrid"></div>
       </div>
 
-      <!-- Today's Practice -->
-      <div class="card" id="practiceCard"></div>
-
-      <!-- Gratitude -->
-      <div class="card">
-        <div class="card-title">One Good Thing</div>
-        <div class="grat-prompt">What's one thing you're genuinely grateful for right now?</div>
-        <textarea class="journal-area" id="gratArea" maxlength="120" placeholder="Be specific, not generic..."></textarea>
-        <div class="char-bar" id="gratCC">0/120</div>
-      </div>
-
-      <!-- Habits -->
+      <!-- ⑤ Habits -->
       <div class="card">
         <div class="card-title">Today's Habits</div>
-        <div class="habit-item" id="habit-walk"     onclick="toggleHabit('walk')">
+        <div class="habit-item" id="habit-walk" onclick="toggleHabit('walk')">
           <span class="habit-emoji">🚶</span>
           <div class="habit-info"><div class="habit-name">Morning Walk</div><div class="habit-sub">Phone-free, outside</div></div>
           <div class="habit-cb" id="hc-walk"></div>
@@ -507,10 +609,10 @@
         </div>
         <div class="habit-item" id="habit-reflected" onclick="toggleHabit('reflected')">
           <span class="habit-emoji">💭</span>
-          <div class="habit-info"><div class="habit-name">Reflected</div><div class="habit-sub">Wrote today's reflection</div></div>
+          <div class="habit-info"><div class="habit-name">Reflected</div><div class="habit-sub">Check-ins done today</div></div>
           <div class="habit-cb" id="hc-reflected"></div>
         </div>
-        <div class="habit-item" id="habit-partner"  onclick="toggleHabit('partner')">
+        <div class="habit-item" id="habit-partner" onclick="toggleHabit('partner')">
           <span class="habit-emoji">💛</span>
           <div class="habit-info"><div class="habit-name">Partner Moment</div><div class="habit-sub">Intentional care</div></div>
           <div class="habit-cb" id="hc-partner"></div>
@@ -948,26 +1050,61 @@ const EXERCISES = [
    benefit:'Screens are stimulation, not rest.'},
 ];
 
+// Nudges keyed to match the 6-notif schedule
 const NUDGES = {
   morning: [
-    {text:'How do you want to show up today?', sub:'Take 60 seconds before the day takes over.'},
-    {text:'What\'s your one priority today?', sub:'Name it before the noise does.'},
-    {text:'Phone down for 30 more minutes.', sub:'Your best morning thoughts haven\'t arrived yet.'},
-    {text:'Before the day begins — breathe.', sub:'Three slow breaths. Then start.'},
+    {text:'What are your plans today?', sub:'Say them out loud — or better, share them with her before the day takes over.'},
+    {text:'Before anything else — is there something she needs to know today?', sub:'Plans, decisions, timing. Say it now, not later.'},
+    {text:'What kind of partner do you want to be today?', sub:'Name it before the day decides for you.'},
+    {text:'Morning reset.', sub:'One plan or intention. Share it with her before 9am.'},
+  ],
+  midmorning: [
+    {text:'Quick check: present or autopilot?', sub:'Tap the app and log it. Takes 10 seconds.'},
+    {text:'Anything sitting in your head unshared?', sub:'A plan, a decision, a thought about this evening. Say it.'},
+    {text:'How are you actually doing right now?', sub:'Not the surface answer.'},
+    {text:'Mid-morning check-in.', sub:'Is there anything building up that needs to come out?'},
   ],
   midday: [
-    {text:'Pause. How are you actually doing?', sub:'Not the surface answer — the real one.'},
-    {text:'Have you eaten and moved today?', sub:'Your body is the tool everything runs on.'},
-    {text:'What would your best self do in the next hour?', sub:'Small pivots matter.'},
-    {text:'Are you being reactive or intentional right now?', sub:'You still get to choose.'},
+    {text:'Halfway through the day.', sub:'Any plans in your head that she doesn\'t know about yet?'},
+    {text:'Midday check.', sub:'Are you being reactive or intentional right now?'},
+    {text:'Pause for 10 seconds.', sub:'Notice how you\'re doing — then log a check-in.'},
+    {text:'Plans for this evening?', sub:'If yes, share them now — not at the last minute.'},
+  ],
+  afternoon: [
+    {text:'Afternoon check-in.', sub:'Come back to yourself. How\'s your energy? Log it.'},
+    {text:'Is there anything you\'ve been sitting on today?', sub:'A plan, a thought, something unspoken. Now is the time.'},
+    {text:'What are you bringing home tonight?', sub:'If it\'s stress or distance — notice it now, not after.'},
+    {text:'Quick self-check.', sub:'Present and grounded, or somewhere else?'},
+  ],
+  preevening: [
+    {text:'You\'re about to transition home.', sub:'Reset now. Leave what needs to stay at work. Walk in present.'},
+    {text:'Pre-evening reset.', sub:'What\'s your plan for tonight? Have you shared it? Walk in with something to give, not just to receive.'},
+    {text:'This is the moment.', sub:'How you walk in the door sets the tone. Breathe. Be present. Be curious.'},
+    {text:'Before you get home —', sub:'Is there anything unresolved from today that needs to be said first?'},
   ],
   evening: [
-    {text:'Time to close the day.', sub:'Reflect before sleep. Even 3 sentences.'},
-    {text:'Leave work at work — mentally.', sub:'Your partner deserves your full presence tonight.'},
-    {text:'What did you do today that you\'re proud of?', sub:'Name it before you forget it.'},
-    {text:'Did you say what needed to be said today?', sub:'If not — is there still time?'},
+    {text:'Before the day closes.', sub:'One honest sentence: how did you show up today?'},
+    {text:'Evening reflection.', sub:'Did you say what needed to be said? Is there anything still unsaid?'},
+    {text:'End of day.', sub:'Proud of how you showed up? If not — what will be different tomorrow?'},
+    {text:'Close the day.', sub:'One check-in. One reflection. Then rest.'},
   ],
 };
+
+// Rotating prompts for the check-in widget
+const CHECKIN_PROMPTS = [
+  'Present or on autopilot right now?',
+  'Is there something you\'re avoiding saying to her?',
+  'Have you shared any plans you\'ve been sitting on?',
+  'Are you in your head, or actually here?',
+  'How would she describe your energy in the last hour?',
+  'Reacting or choosing right now?',
+  'Anything building up that needs to be said soon?',
+  'Is there a decision she doesn\'t know about yet?',
+  'Are you being the version of yourself you respect?',
+  'What would you do differently in the next hour?',
+  'Are you showing curiosity about her, or going through motions?',
+  'Is there a plan in your head that hasn\'t left your mouth yet?',
+];
 
 // ════════════════════════════════
 //  STATE
@@ -977,7 +1114,7 @@ const KEY    = 'innercompass_v2';
 const EPOCH  = new Date('2026-01-01');
 
 function defaultState() {
-  return { days: {}, settings: { notif: {} }, dismissed: {} };
+  return { days: {}, plans: [], settings: { notif: {} }, dismissed: {} };
 }
 
 let state = (() => {
@@ -1040,10 +1177,12 @@ function ensureDay(k) {
       assessment: 0,
       intention: ''
     },
-    boundaries: {}
+    boundaries: {},
+    checkins: []   // [{t: ISO, r: 1-5, n: note}]
   };
-  // Patch older entries that predate boundaries
   if (!state.days[k].boundaries) state.days[k].boundaries = {};
+  if (!state.days[k].checkins)   state.days[k].checkins = [];
+  if (!state.plans)               state.plans = [];
   return state.days[k];
 }
 
@@ -1070,6 +1209,147 @@ function totalDays() {
 // ════════════════════════════════
 //  RENDER
 // ════════════════════════════════
+
+// ── Check-in widget ─────────────────────────────────────
+let selectedRating = 0;
+
+function renderCheckinWidget() {
+  const el = document.getElementById('checkinCard');
+  if (!el) return;
+  const d = todayData();
+  const checkins = d.checkins || [];
+  const di = dayIndex();
+  // Rotate prompt based on day + number of check-ins done today
+  const prompt = CHECKIN_PROMPTS[(di + checkins.length) % CHECKIN_PROMPTS.length];
+  const faces = ['😔','😐','🙂','😊','🌟'];
+
+  const historyHtml = checkins.length === 0
+    ? `<span class="checkin-count">No check-ins yet today — tap a face to start</span>`
+    : checkins.slice(-6).map(c => {
+        const t = new Date(c.t);
+        const hm = t.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true});
+        return `<span class="checkin-dot">${faces[c.r-1]}<span class="ct">${hm}</span></span>`;
+      }).join('') + `<span class="checkin-count">(${checkins.length} today)</span>`;
+
+  el.innerHTML = `
+    <div class="checkin-prompt">${prompt}</div>
+    <div class="checkin-faces" id="checkinFaces">
+      ${faces.map((f,i) => `<button class="checkin-face" onclick="selectRating(${i+1})">${f}</button>`).join('')}
+    </div>
+    <div class="checkin-note-row">
+      <input class="checkin-note-input" id="checkinNote" maxlength="80"
+        placeholder="One word or phrase (optional)..."
+        onkeydown="if(event.key==='Enter')logCheckin()">
+      <button class="checkin-log-btn" id="checkinLogBtn" onclick="logCheckin()" disabled>Log it</button>
+    </div>
+    <div class="checkin-history">${historyHtml}</div>`;
+  selectedRating = 0;
+}
+
+function selectRating(r) {
+  selectedRating = r;
+  document.querySelectorAll('.checkin-face').forEach((b,i) => {
+    b.classList.toggle('selected', i === r-1);
+  });
+  document.getElementById('checkinLogBtn').disabled = false;
+}
+
+function logCheckin() {
+  if (!selectedRating) return;
+  const note = (document.getElementById('checkinNote')?.value || '').trim();
+  const d = todayData();
+  d.checkins.push({ t: new Date().toISOString(), r: selectedRating, n: note });
+  // Auto-mark "Reflected" habit once 2+ check-ins done
+  if (d.checkins.length >= 2) d.habits.reflected = true;
+  save();
+  renderCheckinWidget();
+  renderHabits();
+  renderDotGrid();
+}
+
+// ── Plans to Share ───────────────────────────────────────
+function renderPlans() {
+  const el = document.getElementById('plansList');
+  if (!el) return;
+  if (!state.plans) state.plans = [];
+  const active = state.plans.filter(p => !p.shared);
+  const recent = state.plans.filter(p => p.shared).slice(-3);
+
+  if (active.length === 0 && recent.length === 0) {
+    el.innerHTML = `<div class="plans-empty">✓ Nothing pending — you're clear</div>`;
+    return;
+  }
+
+  const activeHtml = active.map(p => `
+    <div class="plan-item" id="plan-${p.id}">
+      <div>
+        <div class="plan-text">${escHtml(p.text)}</div>
+        <div class="plan-age">${timeAgo(p.added)}</div>
+      </div>
+      <button class="plan-share-btn" onclick="markPlanShared('${p.id}')">Shared ✓</button>
+    </div>`).join('');
+
+  const sharedHtml = recent.map(p => `
+    <div class="plan-item shared">
+      <div>
+        <div class="plan-text">${escHtml(p.text)}</div>
+        <div class="plan-age">Shared ${timeAgo(p.sharedAt)}</div>
+      </div>
+      <span class="plan-done-badge">✓</span>
+    </div>`).join('');
+
+  el.innerHTML = activeHtml + sharedHtml +
+    (state.plans.filter(p=>p.shared).length > 0
+      ? `<button class="plans-clear" onclick="clearSharedPlans()">Clear shared plans</button>` : '');
+}
+
+function togglePlanInput() {
+  const row = document.getElementById('planAddRow');
+  row.classList.toggle('open');
+  if (row.classList.contains('open')) document.getElementById('planInput')?.focus();
+}
+
+function savePlan() {
+  const input = document.getElementById('planInput');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  if (!state.plans) state.plans = [];
+  state.plans.push({ id: Date.now().toString(), text, added: new Date().toISOString(), shared: false });
+  save();
+  input.value = '';
+  document.getElementById('planAddRow').classList.remove('open');
+  renderPlans();
+}
+
+function markPlanShared(id) {
+  const p = state.plans?.find(p => p.id === id);
+  if (!p) return;
+  p.shared = true;
+  p.sharedAt = new Date().toISOString();
+  save();
+  renderPlans();
+}
+
+function clearSharedPlans() {
+  if (!state.plans) return;
+  state.plans = state.plans.filter(p => !p.shared);
+  save();
+  renderPlans();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
 
 function renderBoundaries() {
   const el = document.getElementById('boundariesCard');
@@ -1120,6 +1400,8 @@ function render() {
   renderReflect();
   renderEmpathy();
   renderPartner();
+  renderCheckinWidget();
+  renderPlans();
   renderJournal();
   renderBoundaries();
   renderNotifSettings();
@@ -1139,12 +1421,17 @@ function renderHeader() {
 
 function renderNudge() {
   const h = new Date().getHours();
-  const period = h < 12 ? 'morning' : h < 17 ? 'midday' : 'evening';
-  const pool = NUDGES[period];
+  let period = 'morning';
+  if (h >= 9  && h < 12) period = 'midmorning';
+  if (h >= 12 && h < 15) period = 'midday';
+  if (h >= 15 && h < 17) period = 'afternoon';
+  if (h >= 17 && h < 20) period = 'preevening';
+  if (h >= 20)            period = 'evening';
+  const pool = NUDGES[period] || NUDGES.morning;
   const n = pool[dayIndex() % pool.length];
-  const labels = { morning:'☀️ Morning', midday:'🌤 Midday', evening:'🌙 Evening' };
+  const meta = NOTIF_SCHEDULE.find(s => s.key === period) || NOTIF_SCHEDULE[0];
   document.getElementById('nudgeCard').innerHTML =
-    `<div class="nudge-period">${labels[period]}</div>
+    `<div class="nudge-period">${meta.icon} ${meta.label}</div>
      <div class="nudge-text">${n.text}</div>
      <div class="nudge-sub">${n.sub}</div>`;
 }
@@ -1622,20 +1909,22 @@ function setupAutosaves() {
 const notifTimers = {};
 
 const NOTIF_SCHEDULE = [
-  { key:'morning', hour:8,  min:0,  label:'Morning',  time:'8:00 AM',  icon:'☀️', tab:'today'   },
-  { key:'midday',  hour:13, min:0,  label:'Midday',   time:'1:00 PM',  icon:'🌤',  tab:'reflect'  },
-  { key:'evening', hour:20, min:0,  label:'Evening',  time:'8:00 PM',  icon:'🌙', tab:'journal'  },
+  { key:'morning',    hour:7,  min:0,  label:'Morning',      time:'7:00 AM',  icon:'🌅', tab:'today'   },
+  { key:'midmorning', hour:9,  min:30, label:'Mid-morning',  time:'9:30 AM',  icon:'☀️', tab:'today'   },
+  { key:'midday',     hour:12, min:30, label:'Midday',       time:'12:30 PM', icon:'🌤', tab:'today'   },
+  { key:'afternoon',  hour:15, min:0,  label:'Afternoon',    time:'3:00 PM',  icon:'🌤', tab:'today'   },
+  { key:'preevening', hour:17, min:30, label:'Pre-evening',  time:'5:30 PM',  icon:'🌆', tab:'today'   },
+  { key:'evening',    hour:20, min:30, label:'Evening',      time:'8:30 PM',  icon:'🌙', tab:'reflect' },
 ];
 
 function notifBody(key) {
   const di = dayIndex();
-  const pools = {
-    morning: NUDGES.morning,
-    midday:  NUDGES.midday,
-    evening: NUDGES.evening,
-  };
-  const n = pools[key][di % pools[key].length];
-  return n.text;
+  const pool = NUDGES[key] || NUDGES.midday;
+  const n = pool[di % pool.length];
+  // Add pending plans reminder if any
+  const pending = (state.plans || []).filter(p => !p.shared).length;
+  const planNote = pending > 0 ? ` · ${pending} plan${pending>1?'s':''} to share` : '';
+  return n.text + (planNote ? '\n' + planNote : '');
 }
 
 async function fireNotif(key, tab) {
