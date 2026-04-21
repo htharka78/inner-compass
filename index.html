@@ -282,6 +282,11 @@
     .archive-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
     .archive-section-text  { font-size: 14px; color: var(--text); line-height: 1.5; }
 
+    /* ── Sync ── */
+    .sync-status      { font-size: 12px; margin-top: 6px; }
+    .sync-status.ok   { color: var(--success); }
+    .sync-status.err  { color: var(--accent); }
+
     /* ── Settings ── */
     .settings-row {
       display: flex; align-items: center; justify-content: space-between;
@@ -706,6 +711,9 @@
       <div class="section-heading">Notifications</div>
       <div class="card" id="notifSettingsCard"></div>
 
+      <div class="section-heading">Sync</div>
+      <div class="card" id="syncCard"></div>
+
       <div class="section-heading">Your Data</div>
       <div class="card">
         <div class="settings-row">
@@ -1110,8 +1118,11 @@ const CHECKIN_PROMPTS = [
 //  STATE
 // ════════════════════════════════
 
-const KEY    = 'innercompass_v2';
-const EPOCH  = new Date('2026-01-01');
+const KEY       = 'innercompass_v2';
+const EPOCH     = new Date('2026-01-01');
+const GIST_ID   = 'fbd78fb6cd2d073b3f2ff16c81e0db00';
+const GIST_FILE = 'inner-compass-data.json';
+const TOKEN_KEY = 'ic_gist_token';
 
 function defaultState() {
   return { days: {}, plans: [], settings: { notif: {} }, dismissed: {} };
@@ -1121,7 +1132,8 @@ let state = (() => {
   try { return JSON.parse(localStorage.getItem(KEY)) || defaultState(); } catch { return defaultState(); }
 })();
 
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+function save() { saveLocal(); debouncedSync(); }
 
 function todayKey() { return new Date().toLocaleDateString('en-CA'); }
 
@@ -1409,6 +1421,7 @@ function render() {
   renderNotifSettings();
   checkNotifSetupBanner();
   renderDataStats();
+  renderSyncCard();
 }
 
 function renderHeader() {
@@ -2086,6 +2099,166 @@ function dismissNotifSetup() {
   checkNotifSetupBanner();
 }
 
+// ════════════════════════════════
+//  GIST SYNC
+// ════════════════════════════════
+
+let syncStatus = { state: 'idle', msg: '' };
+let syncTimer  = null;
+
+function gistToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+
+function mergeState(remote) {
+  // Days: merge field-by-field
+  Object.entries(remote.days || {}).forEach(([k, rd]) => {
+    if (!state.days[k]) {
+      state.days[k] = rd;
+    } else {
+      const ld = state.days[k];
+      // Habits: OR (if either device checked it, keep checked)
+      if (rd.habits && ld.habits) {
+        Object.keys(rd.habits).forEach(h => { if (rd.habits[h]) ld.habits[h] = true; });
+      }
+      // Text fields: keep longer
+      if ((rd.reflect?.text?.length || 0) > (ld.reflect?.text?.length || 0)) ld.reflect = rd.reflect;
+      if ((rd.gratitude?.length || 0) > (ld.gratitude?.length || 0)) ld.gratitude = rd.gratitude;
+      if ((rd.mood || 0) && !ld.mood) ld.mood = rd.mood;
+      // Check-ins: merge by timestamp
+      if (rd.checkins?.length) {
+        ld.checkins = ld.checkins || [];
+        const tsSet = new Set(ld.checkins.map(c => c.t));
+        rd.checkins.forEach(c => { if (!tsSet.has(c.t)) ld.checkins.push(c); });
+      }
+      // Boundaries: OR
+      if (rd.boundaries) {
+        ld.boundaries = ld.boundaries || {};
+        Object.entries(rd.boundaries).forEach(([bk, bv]) => { if (bv) ld.boundaries[bk] = true; });
+      }
+      // Empathy: prefer completed
+      if (rd.empathy?.complete && !ld.empathy?.complete) ld.empathy = rd.empathy;
+      // Partner: keep longer text, OR habits
+      if (rd.partner && ld.partner) {
+        if ((rd.partner.appreciation?.length || 0) > (ld.partner.appreciation?.length || 0))
+          ld.partner.appreciation = rd.partner.appreciation;
+        if ((rd.partner.intention?.length || 0) > (ld.partner.intention?.length || 0))
+          ld.partner.intention = rd.partner.intention;
+        if (rd.partner.habits && ld.partner.habits)
+          Object.keys(rd.partner.habits).forEach(h => { if (rd.partner.habits[h]) ld.partner.habits[h] = true; });
+        if ((rd.partner.assessment || 0) && !ld.partner.assessment)
+          ld.partner.assessment = rd.partner.assessment;
+      }
+    }
+  });
+  // Plans: merge by id
+  const planIds = new Set((state.plans || []).map(p => p.id));
+  (remote.plans || []).forEach(rp => {
+    if (!planIds.has(rp.id)) {
+      (state.plans = state.plans || []).push(rp);
+    } else {
+      const lp = state.plans.find(x => x.id === rp.id);
+      if (lp && rp.shared && !lp.shared) { lp.shared = true; lp.sharedAt = rp.sharedAt; }
+    }
+  });
+}
+
+async function syncFromGist() {
+  const token = gistToken();
+  if (!token) return;
+  syncStatus = { state: 'syncing', msg: 'Syncing…' };
+  renderSyncCard();
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+    const gist = await res.json();
+    const content = gist.files?.[GIST_FILE]?.content;
+    if (content) {
+      const remote = JSON.parse(content);
+      mergeState(remote);
+      saveLocal();   // persist merged data without triggering another sync
+      render();
+      setupAutosaves();
+    }
+    syncStatus = { state: 'ok', msg: `Synced ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` };
+  } catch(err) {
+    syncStatus = { state: 'error', msg: `Sync failed: ${err.message}` };
+  }
+  renderSyncCard();
+}
+
+async function syncToGist() {
+  const token = gistToken();
+  if (!token) return;
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(state, null, 2) } } })
+    });
+    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+    syncStatus = { state: 'ok', msg: `Saved ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` };
+  } catch(err) {
+    syncStatus = { state: 'error', msg: `Sync failed: ${err.message}` };
+  }
+  renderSyncCard();
+}
+
+function debouncedSync() {
+  const token = gistToken();
+  if (!token) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToGist, 3000);
+}
+
+function renderSyncCard() {
+  const el = document.getElementById('syncCard');
+  if (!el) return;
+  const token = gistToken();
+  const statusClass = syncStatus.state === 'ok' ? 'ok' : syncStatus.state === 'error' ? 'err' : '';
+  const statusIcon  = syncStatus.state === 'ok' ? '✓ ' : syncStatus.state === 'error' ? '✗ ' : syncStatus.state === 'syncing' ? '↻ ' : '';
+
+  el.innerHTML = `
+    <div class="card-title">GitHub Gist Sync</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+      Privately backs up your data to a secret GitHub Gist — syncs across all your devices automatically.
+    </div>
+    <div style="margin-bottom:10px;">
+      <div class="settings-label" style="font-size:14px;">Personal Access Token</div>
+      <div class="settings-sub" style="margin-bottom:6px;">Create one at github.com → Settings → Developer settings → PAT (Classic) with <em>gist</em> scope</div>
+      <input type="password" id="gistTokenInput" value="${token}"
+        placeholder="ghp_…"
+        style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:var(--rsm);font-size:13px;background:var(--bg);color:var(--text);font-family:monospace;letter-spacing:.04em;"
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="saveGistToken()">Save token</button>
+      <button class="btn btn-outline btn-sm" onclick="syncFromGist()" ${!token ? 'disabled style="opacity:.4"' : ''}>Sync now</button>
+    </div>
+    ${syncStatus.msg ? `<div class="sync-status ${statusClass}" style="margin-top:8px;">${statusIcon}${syncStatus.msg}</div>` : ''}
+    ${!token ? '<div style="font-size:12px;color:var(--muted);margin-top:10px;">No token — data stays local only. Enter your PAT above to enable cross-device sync.</div>' : ''}`;
+}
+
+function saveGistToken() {
+  const input = document.getElementById('gistTokenInput');
+  if (!input) return;
+  const token = input.value.trim();
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    syncStatus = { state: 'idle', msg: 'Token saved — connecting…' };
+    renderSyncCard();
+    syncFromGist();
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    syncStatus = { state: 'idle', msg: '' };
+    renderSyncCard();
+  }
+}
+
 // ── Export / Import ──
 function exportData() {
   const date = new Date().toLocaleDateString('en-CA');
@@ -2170,7 +2343,7 @@ function dismissInstall() {
   document.getElementById('installBanner').style.display = 'none';
 }
 
-// ── Flush on hide ──
+// ── Flush on hide / sync on foreground ──
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     Object.values(saveTimers).forEach(t => clearTimeout(t));
@@ -2183,6 +2356,8 @@ document.addEventListener('visibilitychange', () => {
     save();
   } else {
     renderNudge(); renderHeader();
+    // Pull latest data when coming back to foreground
+    syncFromGist();
   }
 });
 
@@ -2201,6 +2376,7 @@ ensureDay(todayKey());
 render();
 setupAutosaves();
 scheduleNotifs();
+syncFromGist();   // pull latest data on every app open
 
 const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode:standalone)').matches;
 if (!isStandalone && !state.dismissed?.install) {
