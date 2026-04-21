@@ -1468,13 +1468,15 @@ function renderDotGrid() {
 }
 
 function renderPractice() {
+  const el = document.getElementById('practiceCard');
+  if (!el) return;
   const ex = EXERCISES[dayIndex() % EXERCISES.length];
   const done = todayData().habits.exercise;
   const typeLabels = {physical:'Physical',mindful:'Mindfulness',empathy:'Empathy',discipline:'Discipline'};
   const tc = `type-${ex.type}`;
   const steps = ex.steps.map((s,i) =>
     `<div class="step"><div class="step-n">${i+1}</div><div class="step-t">${s}</div></div>`).join('');
-  document.getElementById('practiceCard').innerHTML = `
+  el.innerHTML = `
     <div class="practice-summary" onclick="togglePractice()">
       <span class="practice-icon">${ex.icon}</span>
       <div class="practice-info">
@@ -1523,10 +1525,13 @@ function renderHabits() {
 }
 
 function renderReflect() {
+  const el = document.getElementById('reflectCard');
+  if (!el) return;
   const di = dayIndex();
   const p  = REFLECT_PROMPTS[di % REFLECT_PROMPTS.length];
   const d  = todayData();
-  const meta = CAT_META[p.cat];
+  if (!d.reflect) d.reflect = { text: '', saved: false };
+  const meta = CAT_META[p.cat] || { cls: 'type-self-awareness', label: p.cat };
   document.getElementById('reflectCard').innerHTML = `
     <div class="cat-row">
       <span class="type-badge ${meta.cls}">${meta.label}</span>
