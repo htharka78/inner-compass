@@ -1,7 +1,7 @@
 {
   "name": "Inner Compass",
   "short_name": "Compass",
-  "description": "Daily self-reflection, empathy, and relationship practices",
+  "description": "Real-time behavioural coach for presence, consistency, and repair",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#F5F2EE",
