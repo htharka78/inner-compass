@@ -1,0 +1,5 @@
+.DS_Store
+*.py
+*.png
+icon_*.png
+gen_*.py
